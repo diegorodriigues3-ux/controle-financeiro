@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function verificarAutenticacao() {
-    // Tenta pegar a sessão ativa do Supabase
+    // Pega a sessão ativa do usuário logado no Supabase
     const { data: { session } } = await db.auth.getSession();
     
     if (session && session.user) {
@@ -31,12 +31,13 @@ async function verificarAutenticacao() {
         }
     }
 
-    // Se ainda assim o usuário estiver nulo, criamos um objeto padrão para não travar o app
     if (!usuarioAtual) {
-        usuarioAtual = { id: "usuario-padrao-local" };
+        // Se não houver ninguém logado, redireciona para a página de login
+        window.location.href = "/";
+        return;
     }
 
-    // Tenta buscar o perfil se existir
+    // Busca o perfil do usuário logado
     const { data: profile } = await db
         .from("profiles")
         .select("*")
@@ -98,7 +99,9 @@ function alternarCamposFormulario() {
 
 async function salvarLancamento() {
     if (!usuarioAtual) {
-        usuarioAtual = { id: "usuario-padrao-local" };
+        alert("Sessão expirada. Faça login novamente.");
+        window.location.href = "/";
+        return;
     }
 
     const tipo = document.getElementById("input-tipo").value;
@@ -109,7 +112,7 @@ async function salvarLancamento() {
     const categoria = document.getElementById("input-categoria").value;
 
     if (!descricao || !valorTotalStr || !dataBaseStr) {
-        alert("Por favor, preencha a descrição, valor e data do lançamento.");
+        alert("Por favor, preencha a descrição, o valor e a data do lançamento.");
         return;
     }
 
@@ -133,7 +136,7 @@ async function salvarLancamento() {
         dataParcela.setMonth(dataParcela.getMonth() + i);
 
         novosRegistros.push({
-            user_id: usuarioAtual.id,
+            user_id: usuarioAtual.id, // Usa o ID exclusivo do utilizador logado
             tipo: tipo,
             descricao: parcelas > 1 ? `${descricao} (${i + 1}/${parcelas})` : descricao,
             valor: parseFloat(valorParcela.toFixed(2)),
