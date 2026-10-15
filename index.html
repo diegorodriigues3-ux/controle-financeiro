@@ -3,169 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceiraMente - Gestão Financeira</title>
+    <title>FinanceiraMente - Entrar</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        // Verificação antecipada: se já estiver logado, pula direto para o painel
+        const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_hoyDXLDeGE51ney2E7e-FA_m8owsM0";
+        const supabaseTemp = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        supabaseTemp.auth.getSession().then(({ data: { session } }) => {
+            if (session && session.user) {
+                window.location.href = "/dashboard.html";
+            }
+        });
+    </script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
-    <header class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <span class="text-2xl">🧠</span>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</h1>
-                <span id="badge-plano" class="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30">Plano Gratuito</span>
-            </div>
-            <div class="flex items-center space-x-3">
-                <button id="btn-upgrade" onclick="abrirModalUpgrade()" class="hidden sm:inline-flex items-center text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-lg hover:bg-amber-500/30 transition">
-                    <i class="fa-solid font-bold fa-crown mr-1.5"></i> Seja PRO
-                </button>
-                <button onclick="fazerLogout()" class="text-xs text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition">Sair</button>
-            </div>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
+        <div class="text-center space-y-2">
+            <span class="text-4xl">🧠</span>
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</h1>
+            <p class="text-xs text-slate-400">Faça login ou crie sua conta para acessar o controle financeiro</p>
         </div>
-    </header>
 
-    <main class="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
-        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex justify-between items-center shadow-lg">
-            <button type="button" onclick="mudarMes(-1)" class="p-3 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition cursor-pointer"><i class="fa-solid fa-chevron-left"></i></button>
-            <div class="text-center">
-                <h2 id="display-mes-ano" class="text-lg font-bold text-white capitalize">Outubro de 2026</h2>
-                <span id="status-limite-mensal" class="text-xs text-slate-400">Lançamentos no mês: 0/20</span>
-            </div>
-            <button type="button" onclick="mudarMes(1)" class="p-3 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition cursor-pointer"><i class="fa-solid fa-chevron-right"></i></button>
-        </section>
+        <div id="mensagem-erro" class="hidden bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs p-3 rounded-lg text-center"></div>
 
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-4">
-                <div class="flex justify-between items-center text-emerald-400 mb-1"><span class="text-sm font-medium">Receitas (Entradas)</span><i class="fa-solid fa-circle-arrow-down"></i></div>
-                <p id="total-receitas" class="text-2xl font-bold text-emerald-300">R$ 0,00</p>
+        <form id="form-auth" onsubmit="realizarAcesso(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">E-mail</label>
+                <input type="email5" id="input-email" required placeholder="seu@email.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-purple-500 focus:outline-none">
             </div>
-            <div class="bg-rose-950/40 border border-rose-500/30 rounded-xl p-4">
-                <div class="flex justify-between items-center text-rose-400 mb-1"><span class="text-sm font-medium">Despesas (Saídas)</span><i class="fa-solid fa-circle-arrow-up"></i></div>
-                <p id="total-despesas" class="text-2xl font-bold text-rose-300">R$ 0,00</p>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Senha</label>
+                <input type="password" id="input-senha" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-purple-500 focus:outline-none">
             </div>
-            <div class="bg-purple-950/40 border border-purple-500/30 rounded-xl p-4">
-                <div class="flex justify-between items-center text-purple-400 mb-1"><span class="text-sm font-medium">Saldo do Mês</span><i class="fa-solid fa-wallet"></i></div>
-                <p id="total-saldo" class="text-2xl font-bold text-purple-300">R$ 0,00</p>
-            </div>
-        </section>
+            
+            <button type="submit" id="btn-submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 rounded-lg transition shadow-lg cursor-pointer">
+                Entrar
+            </button>
+        </form>
 
-        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg">
-            <h3 class="text-base font-semibold text-white mb-4 flex items-center"><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i> Lançamento Rápido</h3>
-            <!-- Removido o onsubmit direto do form para evitar bloqueio e tratado via JavaScript -->
-            <div id="form-lancamento" class="space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
-                        <select id="input-tipo" onchange="alternarCamposFormulario()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
-                            <option value="despesa">🔴 Despesa (Saída)</option>
-                            <option value="receita">🟢 Receita (Entrada)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Descrição</label>
-                        <input type="text" id="input-descricao" placeholder="Ex: Mercado, Salário" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor Total (R$)</label>
-                        <input type="number" step="0.01" id="input-valor" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Data</label>
-                        <input type="date" id="input-data" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Forma de Pagamento</label>
-                        <select id="input-pagamento" onchange="alternarCamposFormulario()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
-                            <option value="Pix">⚡ Pix</option>
-                            <option value="Cartão de Crédito">💳 Cartão de Crédito</option>
-                            <option value="Dinheiro">💵 Dinheiro</option>
-                            <option value="Débito / Boleto">🏦 Débito / Boleto</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Categoria</label>
-                        <select id="input-categoria" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
-                            <option value="Mercado">🛒 Mercado / Alimentação</option>
-                            <option value="Moradia">🏠 Moradia / Contas</option>
-                            <option value="Transporte">🚗 Transporte / Combustível</option>
-                            <option value="Lazer">🍕 Lazer / Restaurantes</option>
-                            <option value="Saúde">💊 Saúde / Farmácia</option>
-                            <option value="Salário">💼 Salário / Renda</option>
-                            <option value="Outros">📦 Outros</option>
-                        </select>
-                    </div>
-                    <div id="container-parcelas" style="display: none;">
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Parcelas</label>
-                        <select id="input-parcelas" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
-                            <option value="1">À vista (1x)</option>
-                            <option value="2">2x sem juros</option>
-                            <option value="3">3x sem juros</option>
-                            <option value="4">4x sem juros</option>
-                            <option value="5">5x sem juros</option>
-                            <option value="6">6x sem juros</option>
-                            <option value="10">10x sem juros</option>
-                            <option value="12">12x sem juros</option>
-                        </select>
-                    </div>
-                    <!-- Botão com clique direto na função salvarLancamento -->
-                    <button type="button" onclick="salvarLancamento()" id="btn-salvar" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 rounded-lg transition flex justify-center items-center sm:col-span-3 md:col-span-1 cursor-pointer">
-                        <i class="fa-solid fa-plus mr-2"></i> Adicionar
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg">
-                <h3 class="text-base font-semibold text-white mb-4">Lançamentos do Mês</h3>
-                <div class="overflow-x-auto max-h-80 overflow-y-auto">
-                    <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="text-xs uppercase bg-slate-900/60 text-slate-400 sticky top-0">
-                            <tr>
-                                <th class="p-2.5">Data</th>
-                                <th class="p-2.5">Descrição</th>
-                                <th class="p-2.5">Pagamento</th>
-                                <th class="p-2.5 text-right">Valor</th>
-                                <th class="p-2.5 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabela-lancamentos" class="divide-y divide-slate-700/50">
-                            <tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento neste mês.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center">
-                <h3 class="text-base font-semibold text-white mb-2 self-start">Gastos por Categoria</h3>
-                <div class="w-full max-w-[280px] h-[240px] flex justify-center items-center">
-                    <canvas id="grafico-categorias"></canvas>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <div id="modal-upgrade" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4">
-        <div class="bg-slate-800 border border-purple-500/40 rounded-2xl p-6 max-w-md w-full space-y-4">
-            <div class="text-center space-y-2">
-                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-full flex justify-center items-center mx-auto text-2xl">👑</div>
-                <h3 class="text-xl font-bold text-white">Desbloqueie o FinanceiraMente PRO</h3>
-                <p class="text-xs text-slate-400">Tenha acesso ilimitado e controle tudo diretamente no seu WhatsApp!</p>
-            </div>
-            <ul class="text-sm space-y-2.5 text-slate-300 bg-slate-900/60 p-4 rounded-xl border border-slate-700/50">
-                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Lançamentos mensais ilimitados</li>
-                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Bot de WhatsApp exclusivo para lançamentos rápidos</li>
-                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Relatórios avançados e exportação de PDF</li>
-            </ul>
-            <div class="pt-2 flex flex-col space-y-2">
-                <button onclick="solicitarUpgrade()" class="w-full bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Assinar Agora por R$ 19,90/mês</button>
-                <button onclick="fecharModalUpgrade()" class="w-full text-xs text-slate-400 hover:text-white py-2">Agora não</button>
-            </div>
+        <div class="text-center">
+            <button type="button" onclick="alternarModo()" id="btn-alternar" class="text-xs text-purple-400 hover:text-purple-300 transition cursor-pointer">
+                Não tem uma conta? Cadastre-se
+            </button>
         </div>
     </div>
-    <script src="index.js"></script>
+
+    <script>
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let modoCadastro = false;
+
+        function alternarModo() {
+            modoCadastro = !modoCadastro;
+            const btnSubmit = document.getElementById("btn-submit");
+            const btnAlternar = document.getElementById("btn-alternar");
+            const erroDiv = document.getElementById("mensagem-erro");
+            erroDiv.classList.add("hidden");
+
+            if (modoCadastro) {
+                btnSubmit.innerText = "Criar Conta";
+                btnAlternar.innerText = "Já tem uma conta? Faça login";
+            } else {
+                btnSubmit.innerText = "Entrar";
+                btnAlternar.innerText = "Não tem uma conta? Cadastre-se";
+            }
+        }
+
+        async function realizarAcesso(event) {
+            event.preventDefault();
+            const email = document.getElementById("input-email").value;
+            const senha = document.getElementById("input-senha").value;
+            const erroDiv = document.getElementById("mensagem-erro");
+            erroDiv.classList.add("hidden");
+
+            if (modoCadastro) {
+                const { data, error } = await db.auth.signUp({ email, senha });
+                if (error) {
+                    erroDiv.innerText = "Erro ao cadastrar: " + error.message;
+                    erroDiv.classList.remove("hidden");
+                } else {
+                    alert("Conta criada com sucesso! Faça login para continuar.");
+                    alternarModo();
+                }
+            } else {
+                const { data, error } = await db.auth.signInWithPassword({ email, senha });
+                if (error) {
+                    erroDiv.innerText = "E-mail ou senha incorretos.";
+                    erroDiv.classList.remove("hidden");
+                } else {
+                    window.location.href = "/dashboard.html";
+                }
+            }
+        }
+    </script>
 </body>
 </html>

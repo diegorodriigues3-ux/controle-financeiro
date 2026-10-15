@@ -1,173 +1,511 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Financeira - Controle de Gastos</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #121214; color: #e1e1e6; padding: 20px; }
-    .container { max-width: 1000px; margin: 0 auto; }
-    
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #29292e; padding-bottom: 15px; }
-    h1 { color: #00b37e; font-size: 24px; }
-    button { background: #00875f; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-    button:hover { background: #00b37e; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceiraMente - Painel Financeiro</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        // Verificação imediata de segurança ao carregar o dashboard
+        const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_hoyDXLDeGE51ney2E7e-FA_m8owsM0";
+        const supabaseTemp = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .card { background: #202024; border-radius: 8px; padding: 20px; border: 1px solid #29292e; }
-    .card h3 { font-size: 14px; color: #a8a8b3; margin-bottom: 10px; }
-    .card .valor { font-size: 28px; font-weight: bold; color: #f75a68; }
-
-    .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-    @media (max-width: 768px) { .content-grid { grid-template-columns: 1fr; } }
-    
-    .panel { background: #202024; border-radius: 8px; padding: 20px; border: 1px solid #29292e; }
-    .panel h2 { font-size: 18px; margin-bottom: 15px; color: #e1e1e6; }
-
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 12px; border-bottom: 1px solid #29292e; font-size: 14px; }
-    th { color: #a8a8b3; font-weight: normal; }
-    td { color: #e1e1e6; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; background: #29292e; color: #00b37e; }
-  </style>
+        supabaseTemp.auth.getSession().then(({ data: { session } }) => {
+            if (!session || !session.user) {
+                window.location.href = "/";
+            }
+        });
+    </script>
 </head>
-<body>
-
-  <div class="container">
-    <header>
-      <h1>📊 Dashboard Financeira</h1>
-      <button onclick="carregarDados()">🔄 Atualizar Dados</button>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+    <header class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">🧠</span>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</h1>
+                <span id="badge-plano" class="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30">Plano Gratuito</span>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button id="btn-upgrade" onclick="abrirModalUpgrade()" class="hidden sm:inline-flex items-center text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-lg hover:bg-amber-500/30 transition cursor-pointer">
+                    <i class="fa-solid font-bold fa-crown mr-1.5"></i> Seja PRO
+                </button>
+                <button onclick="fazerLogout()" class="text-xs text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition cursor-pointer">Sair</button>
+            </div>
+        </div>
     </header>
 
-    <!-- Cards Superiores -->
-    <div class="cards">
-      <div class="card">
-        <h3>TOTAL DE GASTOS</h3>
-        <div class="valor" id="total-gastos">R$ 0,00</div>
-      </div>
-      <div class="card">
-        <h3>QUANTIDADE DE LANÇAMENTOS</h3>
-        <div class="valor" style="color: #00b37e;" id="total-itens">0</div>
-      </div>
+    <main class="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex justify-between items-center shadow-lg">
+            <button type="button" onclick="mudarMes(-1)" class="p-3 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition cursor-pointer"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="text-center">
+                <h2 id="display-mes-ano" class="text-lg font-bold text-white capitalize">Carregando...</h2>
+                <span id="status-limite-mensal" class="text-xs text-slate-400">Lançamentos no mês: 0/20</span>
+            </div>
+            <button type="button" onclick="mudarMes(1)" class="p-3 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition cursor-pointer"><i class="fa-solid fa-chevron-right"></i></button>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-4">
+                <div class="flex justify-between items-center text-emerald-400 mb-1"><span class="text-sm font-medium">Receitas (Entradas)</span><i class="fa-solid fa-circle-arrow-down"></i></div>
+                <p id="total-receitas" class="text-2xl font-bold text-emerald-300">R$ 0,00</p>
+            </div>
+            <div class="bg-rose-950/40 border border-rose-500/30 rounded-xl p-4">
+                <div class="flex justify-between items-center text-rose-400 mb-1"><span class="text-sm font-medium">Despesas (Saídas)</span><i class="fa-solid fa-circle-arrow-up"></i></div>
+                <p id="total-despesas" class="text-2xl font-bold text-rose-300">R$ 0,00</p>
+            </div>
+            <div class="bg-purple-950/40 border border-purple-500/30 rounded-xl p-4">
+                <div class="flex justify-between items-center text-purple-400 mb-1"><span class="text-sm font-medium">Saldo do Mês</span><i class="fa-solid fa-wallet"></i></div>
+                <p id="total-saldo" class="text-2xl font-bold text-purple-300">R$ 0,00</p>
+            </div>
+        </section>
+
+        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg">
+            <h3 class="text-base font-semibold text-white mb-4 flex items-center"><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i> Lançamento Rápido</h3>
+            <div id="form-lancamento" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
+                        <select id="input-tipo" onchange="alternarCamposFormulario()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                            <option value="despesa">🔴 Despesa (Saída)</option>
+                            <option value="receita">🟢 Receita (Entrada)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Descrição</label>
+                        <input type="text" id="input-descricao" placeholder="Ex: Mercado, Salário" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor Total (R$)</label>
+                        <input type="number" step="0.01" id="input-valor" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Data</label>
+                        <input type="date" id="input-data" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Forma de Pagamento</label>
+                        <select id="input-pagamento" onchange="alternarCamposFormulario()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                            <option value="Pix">⚡ Pix</option>
+                            <option value="Cartão de Crédito">💳 Cartão de Crédito</option>
+                            <option value="Dinheiro">💵 Dinheiro</option>
+                            <option value="Débito / Boleto">🏦 Débito / Boleto</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Categoria</label>
+                        <select id="input-categoria" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                            <option value="Mercado">🛒 Mercado / Alimentação</option>
+                            <option value="Moradia">🏠 Moradia / Contas</option>
+                            <option value="Transporte">🚗 Transporte / Combustível</option>
+                            <option value="Lazer">🍕 Lazer / Restaurantes</option>
+                            <option value="Saúde">💊 Saúde / Farmácia</option>
+                            <option value="Salário">💼 Salário / Renda</option>
+                            <option value="Outros">📦 Outros</option>
+                        </select>
+                    </div>
+                    <div id="container-parcelas" style="display: none;">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Parcelas</label>
+                        <select id="input-parcelas" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                            <option value="1">À vista (1x)</option>
+                            <option value="2">2x sem juros</option>
+                            <option value="3">3x sem juros</option>
+                            <option value="4">4x sem juros</option>
+                            <option value="5">5x sem juros</option>
+                            <option value="6">6x sem juros</option>
+                            <option value="10">10x sem juros</option>
+                            <option value="12">12x sem juros</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="salvarLancamento()" id="btn-salvar" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 rounded-lg transition flex justify-center items-center sm:col-span-3 md:col-span-1 cursor-pointer">
+                        <i class="fa-solid fa-plus mr-2"></i> Adicionar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg">
+                <h3 class="text-base font-semibold text-white mb-4">Lançamentos do Mês</h3>
+                <div class="overflow-x-auto max-h-80 overflow-y-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="text-xs uppercase bg-slate-900/60 text-slate-400 sticky top-0">
+                            <tr>
+                                <th class="p-2.5">Data</th>
+                                <th class="p-2.5">Descrição</th>
+                                <th class="p-2.5">Pagamento</th>
+                                <th class="p-2.5 text-right">Valor</th>
+                                <th class="p-2.5 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-lancamentos" class="divide-y divide-slate-700/50">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento neste mês.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center">
+                <h3 class="text-base font-semibold text-white mb-2 self-start">Gastos por Categoria</h3>
+                <div class="w-full max-w-[280px] h-[240px] flex justify-center items-center">
+                    <canvas id="grafico-categorias"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal-upgrade" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+        <div class="bg-slate-800 border border-purple-500/40 rounded-2xl p-6 max-w-md w-full space-y-4">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-full flex justify-center items-center mx-auto text-2xl">👑</div>
+                <h3 class="text-xl font-bold text-white">Desbloqueie o FinanceiraMente PRO</h3>
+                <p class="text-xs text-slate-400">Tenha acesso ilimitado e controle tudo diretamente no seu WhatsApp!</p>
+            </div>
+            <ul class="text-sm space-y-2.5 text-slate-300 bg-slate-900/60 p-4 rounded-xl border border-slate-700/50">
+                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Lançamentos mensais ilimitados</li>
+                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Bot de WhatsApp exclusivo para lançamentos rápidos</li>
+                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Relatórios avançados e exportação de PDF</li>
+            </ul>
+            <div class="pt-2 flex flex-col space-y-2">
+                <button onclick="solicitarUpgrade()" class="w-full bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition cursor-pointer">Assinar Agora por R$ 19,90/mês</button>
+                <button onclick="fecharModalUpgrade()" class="w-full text-xs text-slate-400 hover:text-white py-2 cursor-pointer">Agora não</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Gráficos e Tabelas -->
-    <div class="content-grid">
-      <!-- Painel do Gráfico -->
-      <div class="panel">
-        <h2>Gastos por Categoria</h2>
-        <canvas id="chartCategorias" width="400" height="300"></canvas>
-      </div>
+    <script>
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      <!-- Painel da Tabela -->
-      <div class="panel">
-        <h2>Últimos Lançamentos</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Descrição</th>
-              <th>Categoria</th>
-              <th>Forma</th>
-              <th>Valor</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-gastos">
-            <tr><td colspan="4" style="text-align:center;">Carregando...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+        let usuarioAtual = null;
+        let mesAtual = new Date().getMonth();
+        let anoAtual = new Date().getFullYear();
+        let perfilUsuario = { plano: 'gratuito' };
+        let instanciaGrafico = null;
 
-  <script>
-    const supabaseUrl = 'https://ugyrxgpffvrmzomldibk.supabase.co';
-    const supabaseKey = 'sb_publishable_hoyDXLDegE51neY2E7e-FA_m8owsoDe';
-    let meuGrafico = null;
+        const LIMITE_LANCAMENTOS_GRATIS = 20;
 
-    async function carregarDados() {
-      try {
-        const response = await fetch(`${supabaseUrl}/rest/v1/gastos?select=*&order=created_at.desc`, {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`
-          }
+        document.addEventListener("DOMContentLoaded", async () => {
+            document.getElementById("input-data").valueAsDate = new Date();
+            alternarCamposFormulario();
+            atualizarDisplayMesAno();
+            await verificarAutenticacao();
         });
 
-        const gastos = await response.json();
-        
-        // 1. Atualizar Tabela e Totalizadores
-        let total = 0;
-        const tabela = document.getElementById('tabela-gastos');
-        tabela.innerHTML = '';
+        async function obterUsuarioAtivo() {
+            const { data: { session } } = await db.auth.getSession();
+            if (session && session.user) return session.user;
 
-        const categoriasMap = {};
+            const { data: { user } } = await db.auth.getUser();
+            if (user) return user;
 
-        gastos.forEach(gasto => {
-          total += Number(gasto.valor);
-
-          // Agrupar por Categoria para o Gráfico
-          if (categoriasMap[gasto.categoria]) {
-            categoriasMap[gasto.categoria] += Number(gasto.valor);
-          } else {
-            categoriasMap[gasto.categoria] = Number(gasto.valor);
-          }
-
-          // Inserir linha na tabela
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${gasto.descricao}</strong></td>
-            <td><span class="badge">${gasto.categoria}</span></td>
-            <td>${gasto.forma_pagamento}</td>
-            <td style="color: #f75a68; font-weight: bold;">R$ ${Number(gasto.valor).toFixed(2)}</td>
-          `;
-          tabela.appendChild(tr);
-        });
-
-        document.getElementById('total-gastos').innerText = `R$ ${total.toFixed(2)}`;
-        document.getElementById('total-itens').innerText = gastos.length;
-
-        // 2. Gerar Gráfico
-        renderizarGrafico(categoriasMap);
-
-      } catch (err) {
-        console.error("Erro ao buscar dados:", err);
-      }
-    }
-
-    function renderizarGrafico(categoriasMap) {
-      const ctx = document.getElementById('chartCategorias').getContext('2d');
-      
-      const labels = Object.keys(categoriasMap);
-      const data = Object.values(categoriasMap);
-
-      if (meuGrafico) {
-        meuGrafico.destroy();
-      }
-
-      meuGrafico = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: data,
-            backgroundColor: ['#00b37e', '#f75a68', '#00875f', '#ffb800', '#996dff'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { position: 'bottom', labels: { color: '#a8a8b3' } }
-          }
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.includes('supabase.auth.token')) {
+                    try {
+                        const item = JSON.parse(localStorage.getItem(key));
+                        if (item && item.currentSession && item.currentSession.user) return item.currentSession.user;
+                        if (item && item.user) return item.user;
+                    } catch (e) {}
+                }
+            }
+            return null;
         }
-      });
-    }
 
-    // Carrega automaticamente ao abrir a página
-    carregarDados();
-  </script>
+        async function verificarAutenticacao() {
+            usuarioAtual = await obterUsuarioAtivo();
 
+            if (!usuarioAtual) {
+                window.location.href = "/";
+                return;
+            }
+
+            const { data: profile } = await db
+                .from("profiles")
+                .select("*")
+                .eq("id", usuarioAtual.id)
+                .single();
+
+            if (profile) perfilUsuario = profile;
+            
+            atualizarInterfacePlano();
+            await carregarDadosDoMes();
+        }
+
+        function atualizarInterfacePlano() {
+            const badgePlano = document.getElementById("badge-plano");
+            const btnUpgrade = document.getElementById("btn-upgrade");
+
+            if (perfilUsuario.plano === "pro") {
+                badgePlano.innerText = "Plano PRO 👑";
+                badgePlano.className = "bg-amber-900/60 text-amber-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-amber-500/30";
+                if (btnUpgrade) btnUpgrade.classList.add("hidden");
+            } else {
+                badgePlano.innerText = "Plano Gratuito";
+                badgePlano.className = "bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30";
+                if (btnUpgrade) btnUpgrade.classList.remove("hidden");
+            }
+        }
+
+        function mudarMes(delta) {
+            mesAtual += delta;
+            if (mesAtual > 11) {
+                mesAtual = 0;
+                anoAtual += 1;
+            } else if (mesAtual < 0) {
+                mesAtual = 11;
+                anoAtual -= 1;
+            }
+            atualizarDisplayMesAno();
+            carregarDadosDoMes();
+        }
+
+        function atualizarDisplayMesAno() {
+            const dataAux = new Date(anoAtual, mesAtual, 1);
+            const nomeMes = dataAux.toLocaleString("pt-BR", { month: "long" });
+            document.getElementById("display-mes-ano").innerText = `${nomeMes} de ${anoAtual}`;
+        }
+
+        function alternarCamposFormulario() {
+            const tipo = document.getElementById("input-tipo").value;
+            const pagamento = document.getElementById("input-pagamento").value;
+            const containerParcelas = document.getElementById("container-parcelas");
+
+            if (tipo === "despesa" && pagamento === "Cartão de Crédito") {
+                containerParcelas.style.display = "block";
+            } else {
+                containerParcelas.style.display = "none";
+                document.getElementById("input-parcelas").value = "1";
+            }
+        }
+
+        async function salvarLancamento() {
+            usuarioAtual = await obterUsuarioAtivo();
+
+            if (!usuarioAtual || !usuarioAtual.id) {
+                alert("Sessão expirada. Faça login novamente.");
+                window.location.href = "/";
+                return;
+            }
+
+            const tipo = document.getElementById("input-tipo").value;
+            const descricao = document.getElementById("input-descricao").value;
+            const valorTotalStr = document.getElementById("input-valor").value;
+            const dataBaseStr = document.getElementById("input-data").value;
+            const pagamento = document.getElementById("input-pagamento").value;
+            const categoria = document.getElementById("input-categoria").value;
+
+            if (!descricao || !valorTotalStr || !dataBaseStr) {
+                alert("Por favor, preencha a descrição, o valor e a data do lançamento.");
+                return;
+            }
+
+            const valorTotal = parseFloat(valorTotalStr);
+            const parcelas = (tipo === "despesa" && pagamento === "Cartão de Crédito") ? parseInt(document.getElementById("input-parcelas").value) : 1;
+
+            if (perfilUsuario.plano !== "pro") {
+                const totalLancamentosMes = await contarLancamentosMesAtual();
+                if (totalLancamentosMes + parcelas > LIMITE_LANCAMENTOS_GRATIS) {
+                    abrirModalUpgrade();
+                    alert(`Limite do plano gratuito atingido (${LIMITE_LANCAMENTOS_GRATIS} lançamentos/mês).`);
+                    return;
+                }
+            }
+
+            const valorParcela = valorTotal / parcelas;
+            const novosRegistros = [];
+
+            for (let i = 0; i < parcelas; i++) {
+                let dataParcela = new Date(dataBaseStr + "T00:00:00");
+                dataParcela.setMonth(dataParcela.getMonth() + i);
+
+                novosRegistros.push({
+                    user_id: usuarioAtual.id,
+                    tipo: tipo,
+                    descricao: parcelas > 1 ? `${descricao} (${i + 1}/${parcelas})` : descricao,
+                    valor: parseFloat(valorParcela.toFixed(2)),
+                    data: dataParcela.toISOString().split("T")[0],
+                    forma_pagamento: pagamento,
+                    categoria: categoria
+                });
+            }
+
+            const { error } = await db.from("gastos").insert(novosRegistros);
+
+            if (error) {
+                alert("Erro ao salvar no banco: " + error.message);
+            } else {
+                document.getElementById("input-descricao").value = "";
+                document.getElementById("input-valor").value = "";
+                document.getElementById("input-data").valueAsDate = new Date();
+                alternarCamposFormulario();
+                await carregarDadosDoMes();
+            }
+        }
+
+        async function contarLancamentosMesAtual() {
+            if (!usuarioAtual) return 0;
+            const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
+            const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
+
+            const { count } = await db
+                .from("gastos")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", usuarioAtual.id)
+                .gte("data", inicioMes)
+                .lte("data", fimMes);
+
+            return count || 0;
+        }
+
+        async function carregarDadosDoMes() {
+            if (!usuarioAtual) return;
+
+            const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
+            const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
+
+            const { data: lancamentos, error } = await db
+                .from("gastos")
+                .select("*")
+                .eq("user_id", usuarioAtual.id)
+                .gte("data", inicioMes)
+                .lte("data", fimMes)
+                .order("data", { ascending: false });
+
+            if (error) {
+                console.error("Erro ao buscar lançamentos:", error);
+                return;
+            }
+
+            const totalMes = lancamentos ? lancamentos.length : 0;
+            const statusLimite = document.getElementById("status-limite-mensal");
+            if (statusLimite) {
+                statusLimite.innerText = perfilUsuario.plano === "pro" 
+                    ? `Lançamentos no mês: ${totalMes} (Ilimitado)`
+                    : `Lançamentos no mês: ${totalMes}/${LIMITE_LANCAMENTOS_GRATIS}`;
+            }
+
+            let totalReceitas = 0;
+            let totalDespesas = 0;
+            const categoriasGastos = {};
+
+            const tabela = document.getElementById("tabela-lancamentos");
+            tabela.innerHTML = "";
+
+            if (!lancamentos || lancamentos.length === 0) {
+                tabela.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento cadastrado neste mês.</td></tr>`;
+            } else {
+                lancamentos.forEach((item) => {
+                    if (item.tipo === "receita") {
+                        totalReceitas += item.valor;
+                    } else {
+                        totalDespesas += item.valor;
+                        const cat = item.categoria || "Outros";
+                        categoriasGastos[cat] = (categoriasGastos[cat] || 0) + item.valor;
+                    }
+
+                    const dataFormatada = new Date(item.data + "T00:00:00").toLocaleDateString("pt-BR");
+                    const ehReceita = item.tipo === "receita";
+
+                    const tr = document.createElement("tr");
+                    tr.className = "hover:bg-slate-700/30 transition";
+                    tr.innerHTML = `
+                        <td class="p-2.5 text-slate-400 text-xs">${dataFormatada}</td>
+                        <td class="p-2.5 font-medium text-white">${item.descricao}</td>
+                        <td class="p-2.5 text-xs text-slate-300">${item.forma_pagamento || 'Pix'}</td>
+                        <td class="p-2.5 text-right font-bold ${ehReceita ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${ehReceita ? '+' : '-'} R$ ${item.valor.toFixed(2).replace('.', ',')}
+                        </td>
+                        <td class="p-2.5 text-center">
+                            <button type="button" onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition cursor-pointer" title="Excluir">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    tabela.appendChild(tr);
+                });
+            }
+
+            const saldo = totalReceitas - totalDespesas;
+            document.getElementById("total-receitas").innerText = `R$ ${totalReceitas.toFixed(2).replace('.', ',')}`;
+            document.getElementById("total-despesas").innerText = `R$ ${totalDespesas.toFixed(2).replace('.', ',')}`;
+            document.getElementById("total-saldo").innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
+
+            atualizarGraficoCategorias(categoriasGastos);
+        }
+
+        function atualizarGraficoCategorias(dadosCategorias) {
+            const canvas = document.getElementById("grafico-categorias");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const labels = Object.keys(dadosCategorias);
+            const valores = Object.values(dadosCategorias);
+
+            if (instanciaGrafico) {
+                instanciaGrafico.destroy();
+            }
+
+            if (labels.length === 0) {
+                instanciaGrafico = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Sem despesas'],
+                        datasets: [{ data: [1], backgroundColor: ['#334155'] }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+                return;
+            }
+
+            instanciaGrafico = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        async function deletarLancamento(id) {
+            if (!confirm("Tem certeza que deseja excluir este lançamento?")) return;
+            const { error } = await db.from("gastos").delete().eq("id", id);
+            if (error) alert("Erro ao excluir: " + error.message);
+            else await carregarDadosDoMes();
+        }
+
+        function abrirModalUpgrade() {
+            document.getElementById("modal-upgrade").classList.remove("hidden");
+        }
+
+        function fecharModalUpgrade() {
+            document.getElementById("modal-upgrade").classList.add("hidden");
+        }
+
+        function solicitarUpgrade() {
+            alert("Redirecionando para a página de pagamento...");
+        }
+
+        async function fazerLogout() {
+            try {
+                await db.auth.signOut();
+            } catch (e) {}
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = "/";
+        }
+    </script>
 </body>
 </html>
