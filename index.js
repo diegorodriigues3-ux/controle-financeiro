@@ -20,12 +20,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function verificarAutenticacao() {
     // Tenta pegar a sessão ativa do Supabase
-    const { data: { session }, error } = await db.auth.getSession();
+    const { data: { session } } = await db.auth.getSession();
     
     if (session && session.user) {
         usuarioAtual = session.user;
     } else {
-        // Tenta buscar o usuário diretamente
         const { data: { user } } = await db.auth.getUser();
         if (user) {
             usuarioAtual = user;
@@ -33,8 +32,8 @@ async function verificarAutenticacao() {
     }
 
     if (!usuarioAtual) {
-        // Se não houver usuário logado, redireciona para a tela de login (raiz)
-        window.location.href = "/";
+        // Apenas para a execução sem entrar em loop de redirecionamento
+        console.warn("Aguardando sessão do usuário...");
         return;
     }
 
@@ -100,9 +99,14 @@ function alternarCamposFormulario() {
 
 async function salvarLancamento() {
     if (!usuarioAtual) {
-        alert("Sessão expirada. Por favor, faça login novamente.");
-        window.location.href = "/";
-        return;
+        // Tenta recuperar mais uma vez na hora do clique
+        const { data: { session } } = await db.auth.getSession();
+        if (session && session.user) {
+            usuarioAtual = session.user;
+        } else {
+            alert("Sessão não encontrada. Por favor, faça login novamente.");
+            return;
+        }
     }
 
     const tipo = document.getElementById("input-tipo").value;
@@ -313,7 +317,6 @@ function solicitarUpgrade() {
 }
 
 async function fazerLogout() {
-    // Força a limpeza do localStorage e encerra a sessão no Supabase
     try {
         await db.auth.signOut();
     } catch (e) {}
