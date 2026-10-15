@@ -19,8 +19,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function verificarAutenticacao() {
-    // Busca a sessão ativa do usuário logado
-    const { data: { session } } = await db.auth.getSession();
+    // Validação estrita e segura direto do Supabase (sem cache de terceiros)
+    const { data: { session }, error } = await db.auth.getSession();
     
     if (session && session.user) {
         usuarioAtual = session.user;
@@ -31,13 +31,13 @@ async function verificarAutenticacao() {
         }
     }
 
+    // Se não houver sessão real logada, expulsa para a página de login (raiz)
     if (!usuarioAtual) {
-        // Se não houver ninguém logado, redireciona para a tela de login
         window.location.href = "/";
         return;
     }
 
-    // Busca o perfil exclusivo do usuário no banco
+    // Busca o perfil individual do usuário no banco
     const { data: profile } = await db
         .from("profiles")
         .select("*")
@@ -136,7 +136,7 @@ async function salvarLancamento() {
         dataParcela.setMonth(dataParcela.getMonth() + i);
 
         novosRegistros.push({
-            user_id: usuarioAtual.id, // Vincula estritamente ao ID do usuário logado
+            user_id: usuarioAtual.id,
             tipo: tipo,
             descricao: parcelas > 1 ? `${descricao} (${i + 1}/${parcelas})` : descricao,
             valor: parseFloat(valorParcela.toFixed(2)),
@@ -180,7 +180,6 @@ async function carregarDadosDoMes() {
     const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
     const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
 
-    // Carrega apenas os dados do usuário autenticado
     const { data: lancamentos, error } = await db
         .from("gastos")
         .select("*")
@@ -317,5 +316,6 @@ async function fazerLogout() {
         await db.auth.signOut();
     } catch (e) {}
     localStorage.clear();
+    sessionStorage.clear();
     window.location.href = "/";
 }
