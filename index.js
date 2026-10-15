@@ -1,165 +1,264 @@
-import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
-import express from 'express';
-import qrcode from 'qrcode';
-import pino from 'pino';
+// CONFIGURAÇÃO DO SUPABASE
+const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co"; // Substitua com a sua URL se diferente
+const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Cole a sua anon key do Supabase aqui
 
-const app = express();
-app.use(express.json());
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const GROQ_KEY = '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';
-const SUPABASE_URL = 'https://ugyrxgpffvrmzomldibk.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_hoyDXLDegE51neY2E7e-FA_m8owsoDe';
+// ESTADO DA APLICAÇÃO
+let usuarioAtual = null;
+let mesAtual = new Date().getMonth();
+let anoAtual = new Date().getFullYear();
+let perfilUsuario = { plano: 'gratuito' };
 
-let qrCodeAtual = '';
-let statusConexao = 'A iniciar...';
+// CONFIGURAÇÃO DE LIMITES FREEMIUM
+const LIMITE_LANCAMENTOS_GRATIS = 20;
 
-async function iniciarWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-
-  const sock = makeWASocket({
-    auth: state,
-    logger: pino({ level: 'silent' })
-  });
-
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
+// INICIALIZAÇÃO
+document.addEventListener("DOMContentLoaded", async () => {
+    // Definir data padrão de hoje no formulário
+    document.getElementById("input-data").valueAsDate = new Date();
     
-    if (qr) {
-      qrCodeAtual = await qrcode.toDataURL(qr);
-      statusConexao = 'A aguardar leitura do QR Code';
-      console.log('📱 QR Code gerado! Abra http://localhost:3000 no seu navegador.');
+    await verificarAutenticacao();
+    atualizarDisplayMesAno();
+    await carregarDadosDoMes();
+});
+
+// AUTENTICAÇÃO E CHECAGEM DE USUÁRIO
+async function verificarAutenticacao() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        window.location.href = "/"; // Redireciona para tela de login se não autenticado
+        return;
+    }
+    usuarioAtual = user;
+
+    // Buscar plano do usuário na tabela de perfis
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+    if (profile) {
+        perfilUsuario = profile;
     }
 
-    if (connection === 'close') {
-      statusConexao = 'Desconectado';
-      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log('⚠️ Conexão fechada. A reconectar...', shouldReconnect);
-      if (shouldReconnect) {
-        iniciarWhatsApp();
-      }
-    } else if (connection === 'open') {
-      statusConexao = 'Conectado com sucesso!';
-      qrCodeAtual = '';
-      console.log('✅ WhatsApp conectado com sucesso!');
-    }
-  });
-
-  sock.ev.on('creds.update', saveCreds);
-
-  sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
-
-    for (const msg of messages) {
-      if (!msg.message || msg.key.fromMe) continue;
-
-      const numeroWhatsapp = msg.key.remoteJid;
-      const textoMensagem = msg.message.conversation || 
-                            msg.message.extendedTextMessage?.text;
-
-      if (!textoMensagem) continue;
-
-      console.log(`\n💬 Mensagem recebida de ${numeroWhatsapp}: "${textoMensagem}"`);
-
-      try {
-        const promptSistema = `
-          Você é o cérebro financeiro de um aplicativo de controle de gastos. 
-          Analise a frase enviada pelo usuário e extraia as informações estritamente no formato JSON.
-          Retorne APENAS o JSON válido sem marcação markdown e sem explicações.
-          Formatos permitidos:
-          {
-            "valor": 0.00,
-            "descricao": "nome do item ou estabelecimento",
-            "categoria": "Alimentação, Transporte, Lazer, Moradia, Saúde, Outros",
-            "forma_pagamento": "Pix, Crédito, Débito, Dinheiro"
-          }
-        `;
-
-        const responseIa = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${GROQ_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'openai/gpt-oss-20b',
-            messages: [
-              { role: 'system', content: promptSistema },
-              { role: 'user', content: `Frase do usuário: "${textoMensagem}"` }
-            ],
-            temperature: 0.1
-          })
-        });
-
-        const dataIa = await responseIa.json();
-        const conteudoIa = dataIa.choices[0].message.content.trim();
-        const dadosGasto = JSON.parse(conteudoIa);
-
-        const responseSupabase = await fetch(`${SUPABASE_URL}/rest/v1/gastos`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify({
-            whatsapp_number: numeroWhatsapp,
-            valor: dadosGasto.valor,
-            descricao: dadosGasto.descricao,
-            categoria: dadosGasto.categoria,
-            forma_pagamento: dadosGasto.forma_pagamento,
-            plano_usuario: 'free'
-          })
-        });
-
-        if (!responseSupabase.ok) {
-          throw new Error("Erro ao salvar no Supabase");
-        }
-
-        console.log(`✅ Gasto salvo: R$ ${dadosGasto.valor} (${dadosGasto.categoria})`);
-
-        await sock.sendMessage(numeroWhatsapp, { 
-          text: `✅ Gasto registado com sucesso!\n\n📌 *Item:* ${dadosGasto.descricao}\n💰 *Valor:* R$ ${dadosGasto.valor.toFixed(2)}\n📂 *Categoria:* ${dadosGasto.categoria}\n💳 *Pagamento:* ${dadosGasto.forma_pagamento}` 
-        });
-
-      } catch (error) {
-        console.error('❌ Erro ao processar mensagem:', error.message);
-      }
-    }
-  });
+    atualizarInterfacePlano();
 }
 
-// Página web simples para exibir o QR Code com nitidez
-app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="pt">
-    <head>
-      <meta charset="UTF-8">
-      <title>Conectar WhatsApp</title>
-      <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #121214; color: #fff; padding-top: 50px; }
-        h1 { color: #00b37e; }
-        .box { background: #202024; display: inline-block; padding: 30px; border-radius: 12px; border: 1px solid #29292e; }
-        img { margin-top: 20px; border-radius: 8px; background: white; padding: 10px; }
-      </style>
-      <meta http-equiv="refresh" content="5">
-    </head>
-    <body>
-      <div class="box">
-        <h1>Conectar WhatsApp ao Bot</h1>
-        <p>Estado: <strong>${statusConexao}</strong></p>
-        ${qrCodeAtual ? `<img src="${qrCodeAtual}" alt="QR Code" width="300" height="300">` : '<p>A gerar QR Code ou já conectado...</p>'}
-        <p style="margin-top: 15px; font-size: 14px; color: #a8a8b3;">A página atualiza automaticamente a cada 5 segundos.</p>
-      </div>
-    </body>
-    </html>
-  `);
-});
+function atualizarInterfacePlano() {
+    const badgePlano = document.getElementById("badge-plano");
+    const btnUpgrade = document.getElementById("btn-upgrade");
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor web iniciado em http://localhost:3000`);
-});
+    if (perfilUsuario.plano === "pro") {
+        badgePlano.innerText = "Plano PRO 👑";
+        badgePlano.className = "bg-amber-900/60 text-amber-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-amber-500/30";
+        btnUpgrade.classList.add("hidden");
+    } else {
+        badgePlano.innerText = "Plano Gratuito";
+        badgePlano.className = "bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30";
+        btnUpgrade.classList.remove("hidden");
+    }
+}
 
-iniciarWhatsApp();
+// CONTROLE DE MESES
+function mudarMes(delta) {
+    mesAtual += delta;
+    if (mesAtual > 11) {
+        mesAtual = 0;
+        anoAtual += 1;
+    } else if (mesAtual < 0) {
+        mesAtual = 11;
+        anoAtual -= 1;
+    }
+    atualizarDisplayMesAno();
+    carregarDadosDoMes();
+}
+
+function atualizarDisplayMesAno() {
+    const dataAux = new Date(anoAtual, mesAtual, 1);
+    const nomeMes = dataAux.toLocaleString("pt-BR", { month: "long" });
+    document.getElementById("display-mes-ano").innerText = `${nomeMes} de ${anoAtual}`;
+}
+
+// OCULTAR/EXIBIR PARCELAS SE FOR RECEITA
+function alternarCampoParcelas() {
+    const tipo = document.getElementById("input-tipo").value;
+    const container = document.getElementById("container-parcelas");
+    if (tipo === "receita") {
+        container.style.display = "none";
+        document.getElementById("input-parcelas").value = "1";
+    } else {
+        container.style.display = "block";
+    }
+}
+
+// SALVAR LANÇAMENTO E TRATAR PARCELAMENTO
+async function salvarLancamento(event) {
+    event.preventDefault();
+    if (!usuarioAtual) return;
+
+    const tipo = document.getElementById("input-tipo").value;
+    const descricao = document.getElementById("input-descricao").value;
+    const valorTotal = parseFloat(document.getElementById("input-valor").value);
+    const dataBaseStr = document.getElementById("input-data").value;
+    const parcelas = parseInt(document.getElementById("input-parcelas").value);
+
+    // Validação do Limite Freemium (Plano Gratuito)
+    if (perfilUsuario.plano !== "pro") {
+        const totalLancamentosMes = await contarLancamentosMesAtual();
+        if (totalLancamentosMes + parcelas > LIMITE_LANCAMENTOS_GRATIS) {
+            abrirModalUpgrade();
+            alert(`Você atingiu o limite de ${LIMITE_LANCAMENTOS_GRATIS} lançamentos do plano gratuito neste mês! Faça o upgrade para o PRO para continuar.`);
+            return;
+        }
+    }
+
+    const valorParcela = valorTotal / parcelas;
+    const novosRegistros = [];
+
+    // Gerar as parcelas mês a mês automaticamente
+    for (let i = 0; i < parcelas; i++) {
+        let dataParcela = new Date(dataBaseStr + "T00:00:00");
+        dataParcela.setMonth(dataParcela.getMonth() + i);
+
+        novosRegistros.push({
+            user_id: usuarioAtual.id,
+            tipo: tipo,
+            descricao: parcelas > 1 ? `${descricao} (${i + 1}/${parcelas})` : descricao,
+            valor: parseFloat(valorParcela.toFixed(2)),
+            data: dataParcela.toISOString().split("T")[0]
+        });
+    }
+
+    const { error } = await supabase.from("gastos").insert(novosRegistros);
+
+    if (error) {
+        alert("Erro ao salvar lançamento: " + error.message);
+    } else {
+        document.getElementById("form-lancamento").reset();
+        document.getElementById("input-data").valueAsDate = new Date();
+        alternarCampoParcelas();
+        await carregarDadosDoMes();
+    }
+}
+
+// CONTAGEM DE LANÇAMENTOS DO MÊS PARA O FREEMIUM
+async function contarLancamentosMesAtual() {
+    const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
+    const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
+
+    const { count } = await supabase
+        .from("gastos")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", usuarioAtual.id)
+        .gte("data", inicioMes)
+        .lte("data", fimMes);
+
+    return count || 0;
+}
+
+// CARREGAR E EXIBIR OS DADOS DO MÊS SELECIONADO
+async function carregarDadosDoMes() {
+    if (!usuarioAtual) return;
+
+    const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
+    const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
+
+    const { data: lancamentos, error } = await supabase
+        .from("gastos")
+        .select("*")
+        .eq("user_id", usuarioAtual.id)
+        .gte("data", inicioMes)
+        .lte("data", fimMes)
+        .order("data", { ascending: false });
+
+    if (error) {
+        console.error("Erro ao buscar lançamentos:", error);
+        return;
+    }
+
+    // Atualizar Contagem Freemium no Painel
+    const totalMes = lancamentos ? lancamentos.length : 0;
+    const statusLimite = document.getElementById("status-limite-mensal");
+    if (perfilUsuario.plano === "pro") {
+        statusLimite.innerText = `Lançamentos no mês: ${totalMes} (Ilimitado)`;
+    } else {
+        statusLimite.innerText = `Lançamentos no mês: ${totalMes}/${LIMITE_LANCAMENTOS_GRATIS}`;
+    }
+
+    // Calcular Totais
+    let totalReceitas = 0;
+    let totalDespesas = 0;
+
+    const tabela = document.getElementById("tabela-lancamentos");
+    tabela.innerHTML = "";
+
+    if (!lancamentos || lancamentos.length === 0) {
+        tabela.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento cadastrado para este mês.</td></tr>`;
+    } else {
+        lancamentos.forEach((item) => {
+            if (item.tipo === "receita") totalReceitas += item.valor;
+            else totalDespesas += item.valor;
+
+            const dataFormatada = new Date(item.data + "T00:00:00").toLocaleDateString("pt-BR");
+            const ehReceita = item.tipo === "receita";
+
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-700/30 transition";
+            tr.innerHTML = `
+                <td class="p-3 text-slate-400">${dataFormatada}</td>
+                <td class="p-3 font-medium text-white">${item.descricao}</td>
+                <td class="p-3">
+                    <span class="text-xs px-2 py-0.5 rounded-full ${ehReceita ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}">
+                        ${ehReceita ? 'Receita' : 'Despesa'}
+                    </span>
+                </td>
+                <td class="p-3 text-right font-bold ${ehReceita ? 'text-emerald-400' : 'text-rose-400'}">
+                    ${ehReceita ? '+' : '-'} R$ ${item.valor.toFixed(2).replace('.', ',')}
+                </td>
+                <td class="p-3 text-center">
+                    <button onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition p-1" title="Excluir">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            tabela.appendChild(tr);
+        });
+    }
+
+    const saldo = totalReceitas - totalDespesas;
+    document.getElementById("total-receitas").innerText = `R$ ${totalReceitas.toFixed(2).replace('.', ',')}`;
+    document.getElementById("total-despesas").innerText = `R$ ${totalDespesas.toFixed(2).replace('.', ',')}`;
+    document.getElementById("total-saldo").innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
+}
+
+// DELETAR LANÇAMENTO
+async function deletarLancamento(id) {
+    if (!confirm("Tem certeza que deseja excluir este lançamento?")) return;
+
+    const { error } = await supabase.from("gastos").delete().eq("id", id);
+    if (error) {
+        alert("Erro ao excluir lançamento: " + error.message);
+    } else {
+        await carregarDadosDoMes();
+    }
+}
+
+// MODAL DE UPGRADE E AUTENTICAÇÃO
+function abrirModalUpgrade() {
+    document.getElementById("modal-upgrade").classList.remove("hidden");
+}
+
+function fecharModalUpgrade() {
+    document.getElementById("modal-upgrade").classList.add("hidden");
+}
+
+function solicitarUpgrade() {
+    alert("Redirecionando para a página de pagamento seguro (Mercado Pago / Stripe)...");
+}
+
+async function fazerLogout() {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+}
