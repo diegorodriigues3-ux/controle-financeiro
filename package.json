@@ -1,0 +1,25 @@
+{
+  "name": "controle-financeiro",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@google/genai": "^2.29.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
+    "body-parser": "^2.3.0",
+    "cohere-ai": "^8.1.0",
+    "dotenv": "^18.0.7",
+    "express": "^5.3.0",
+    "groq-sdk": "^1.6.0",
+    "pino": "^10.4.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
