@@ -1,9 +1,7 @@
 const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
-const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Cole sua chave anon real aqui
+const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Cole aqui a sua chave anon real do Supabase
 
-// Evita duplicidade de declaração usando window.supabase
-window.supabaseClient = window.supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const supabase = window.supabaseClient;
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let usuarioAtual = null;
 let mesAtual = new Date().getMonth();
@@ -15,21 +13,21 @@ const LIMITE_LANCAMENTOS_GRATIS = 20;
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("input-data").valueAsDate = new Date();
-    alternarCamposFormulario(); // Inicializa o estado do campo de parcelas
+    alternarCamposFormulario();
     atualizarDisplayMesAno();
     await verificarAutenticacao();
     await carregarDadosDoMes();
 });
 
 async function verificarAutenticacao() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await db.auth.getUser();
     if (!user) {
         window.location.href = "/";
         return;
     }
     usuarioAtual = user;
 
-    const { data: profile } = await supabase
+    const { data: profile } = await db
         .from("profiles")
         .select("*")
         .eq("id", user.id)
@@ -125,7 +123,7 @@ async function salvarLancamento(event) {
         });
     }
 
-    const { error } = await supabase.from("gastos").insert(novosRegistros);
+    const { error } = await db.from("gastos").insert(novosRegistros);
 
     if (error) {
         alert("Erro ao salvar: " + error.message);
@@ -141,7 +139,7 @@ async function contarLancamentosMesAtual() {
     const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
     const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
 
-    const { count } = await supabase
+    const { count } = await db
         .from("gastos")
         .select("*", { count: "exact", head: true })
         .eq("user_id", usuarioAtual.id)
@@ -157,7 +155,7 @@ async function carregarDadosDoMes() {
     const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
     const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
 
-    const { data: lancamentos, error } = await supabase
+    const { data: lancamentos, error } = await db
         .from("gastos")
         .select("*")
         .eq("user_id", usuarioAtual.id)
@@ -271,7 +269,7 @@ function atualizarGraficoCategorias(dadosCategorias) {
 
 async function deletarLancamento(id) {
     if (!confirm("Tem certeza que deseja excluir este lançamento?")) return;
-    const { error } = await supabase.from("gastos").delete().eq("id", id);
+    const { error } = await db.from("gastos").delete().eq("id", id);
     if (error) alert("Erro ao excluir: " + error.message);
     else await carregarDadosDoMes();
 }
@@ -289,6 +287,6 @@ function solicitarUpgrade() {
 }
 
 async function fazerLogout() {
-    await supabase.auth.signOut();
+    await db.auth.signOut();
     window.location.href = "/";
 }
