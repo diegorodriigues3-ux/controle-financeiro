@@ -6,6 +6,7 @@
     <title>FinanceiraMente - Gestão Financeira</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen">
@@ -42,7 +43,7 @@
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
             <div class="text-center">
-                <h2 id="display-mes-ano" class="text-lg font-bold text-white capitalize">Carregando...</h2>
+                <h2 id="display-mes-ano" class="text-lg font-bold text-white capitalize">Outubro de 2026</h2>
                 <span id="status-limite-mensal" class="text-xs text-slate-400">Lançamentos no mês: 0/20</span>
             </div>
             <button onclick="mudarMes(1)" class="p-2 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition">
@@ -88,7 +89,7 @@
                     <!-- Tipo -->
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
-                        <select id="input-tipo" onchange="alternarCampoParcelas()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                        <select id="input-tipo" onchange="alternarCamposFormulario()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
                             <option value="despesa">🔴 Despesa (Saída)</option>
                             <option value="receita">🟢 Receita (Entrada)</option>
                         </select>
@@ -113,10 +114,35 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                    <!-- Parcelamento -->
-                    <div id="container-parcelas">
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Parcelamento</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                    <!-- Forma de Pagamento -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Forma de Pagamento</label>
+                        <select id="input-pagamento" onchange="alternarCamposFormulario()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                            <option value="Pix">⚡ Pix</option>
+                            <option value="Cartão de Crédito">💳 Cartão de Crédito</option>
+                            <option value="Dinheiro">💵 Dinheiro</option>
+                            <option value="Débito / Boleto">🏦 Débito / Boleto</option>
+                        </select>
+                    </div>
+
+                    <!-- Categoria -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Categoria</label>
+                        <select id="input-categoria" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                            <option value="Mercado">🛒 Mercado / Alimentação</option>
+                            <option value="Moradia">🏠 Moradia / Contas</option>
+                            <option value="Transporte">🚗 Transporte / Combustível</option>
+                            <option value="Lazer">🍕 Lazer / Restaurantes</option>
+                            <option value="Saúde">💊 Saúde / Farmácia</option>
+                            <option value="Salário">💼 Salário / Renda</option>
+                            <option value="Outros">📦 Outros</option>
+                        </select>
+                    </div>
+
+                    <!-- Parcelamento (Só ativo se Cartão de Crédito) -->
+                    <div id="container-parcelas" style="display: none;">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Parcelas</label>
                         <select id="input-parcelas" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
                             <option value="1">À vista (1x)</option>
                             <option value="2">2x sem juros</option>
@@ -129,33 +155,44 @@
                         </select>
                     </div>
 
-                    <button type="submit" id="btn-salvar" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 rounded-lg transition flex justify-center items-center">
-                        <i class="fa-solid fa-plus mr-2"></i> Adicionar Lançamento
+                    <button type="submit" id="btn-salvar" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 rounded-lg transition flex justify-center items-center sm:col-span-3 md:col-span-1">
+                        <i class="fa-solid fa-plus mr-2"></i> Adicionar
                     </button>
                 </div>
             </form>
         </section>
 
-        <!-- LISTA DE LANÇAMENTOS DO MÊS -->
-        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg">
-            <h3 class="text-base font-semibold text-white mb-4">Lançamentos do Mês</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-300">
-                    <thead class="text-xs uppercase bg-slate-900/60 text-slate-400">
-                        <tr>
-                            <th class="p-3">Data</th>
-                            <th class="p-3">Descrição</th>
-                            <th class="p-3">Tipo</th>
-                            <th class="p-3 text-right">Valor</th>
-                            <th class="p-3 text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-lancamentos" class="divide-y divide-slate-700/50">
-                        <tr>
-                            <td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento neste mês.</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <!-- GRÁFICO E DISTRIBUIÇÃO DOS GASTOS -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- TABELA DE LANÇAMENTOS -->
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg">
+                <h3 class="text-base font-semibold text-white mb-4">Lançamentos do Mês</h3>
+                <div class="overflow-x-auto max-h-80 overflow-y-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="text-xs uppercase bg-slate-900/60 text-slate-400 sticky top-0">
+                            <tr>
+                                <th class="p-2.5">Data</th>
+                                <th class="p-2.5">Descrição</th>
+                                <th class="p-2.5">Pagamento</th>
+                                <th class="p-2.5 text-right">Valor</th>
+                                <th class="p-2.5 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-lancamentos" class="divide-y divide-slate-700/50">
+                            <tr>
+                                <td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento neste mês.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- GRÁFICO DE CATEGORIAS -->
+            <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center">
+                <h3 class="text-base font-semibold text-white mb-2 self-start">Gastos por Categoria</h3>
+                <div class="w-full max-w-[280px] h-[240px] flex justify-center items-center">
+                    <canvas id="grafico-categorias"></canvas>
+                </div>
             </div>
         </section>
     </main>

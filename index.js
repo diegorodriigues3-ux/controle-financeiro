@@ -1,6 +1,6 @@
 // CONFIGURAÇÃO DO SUPABASE
-const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co"; // Substitua com a sua URL se diferente
-const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Cole a sua anon key do Supabase aqui
+const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
+const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Mantenha sua chave anon aqui
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -9,40 +9,32 @@ let usuarioAtual = null;
 let mesAtual = new Date().getMonth();
 let anoAtual = new Date().getFullYear();
 let perfilUsuario = { plano: 'gratuito' };
+let instanciaGrafico = null;
 
-// CONFIGURAÇÃO DE LIMITES FREEMIUM
 const LIMITE_LANCAMENTOS_GRATIS = 20;
 
-// INICIALIZAÇÃO
 document.addEventListener("DOMContentLoaded", async () => {
-    // Definir data padrão de hoje no formulário
     document.getElementById("input-data").valueAsDate = new Date();
-    
-    await verificarAutenticacao();
     atualizarDisplayMesAno();
+    await verificarAutenticacao();
     await carregarDadosDoMes();
 });
 
-// AUTENTICAÇÃO E CHECAGEM DE USUÁRIO
 async function verificarAutenticacao() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        window.location.href = "/"; // Redireciona para tela de login se não autenticado
+        window.location.href = "/";
         return;
     }
     usuarioAtual = user;
 
-    // Buscar plano do usuário na tabela de perfis
     const { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-    if (profile) {
-        perfilUsuario = profile;
-    }
-
+    if (profile) perfilUsuario = profile;
     atualizarInterfacePlano();
 }
 
@@ -61,7 +53,6 @@ function atualizarInterfacePlano() {
     }
 }
 
-// CONTROLE DE MESES
 function mudarMes(delta) {
     mesAtual += delta;
     if (mesAtual > 11) {
@@ -81,19 +72,19 @@ function atualizarDisplayMesAno() {
     document.getElementById("display-mes-ano").innerText = `${nomeMes} de ${anoAtual}`;
 }
 
-// OCULTAR/EXIBIR PARCELAS SE FOR RECEITA
-function alternarCampoParcelas() {
+function alternarCamposFormulario() {
     const tipo = document.getElementById("input-tipo").value;
-    const container = document.getElementById("container-parcelas");
-    if (tipo === "receita") {
-        container.style.display = "none";
-        document.getElementById("input-parcelas").value = "1";
+    const pagamento = document.getElementById("input-pagamento").value;
+    const containerParcelas = document.getElementById("container-parcelas");
+
+    if (tipo === "despesa" && pagamento === "Cartão de Crédito") {
+        containerParcelas.style.display = "block";
     } else {
-        container.style.display = "block";
+        containerParcelas.style.display = "none";
+        document.getElementById("input-parcelas").value = "1";
     }
 }
 
-// SALVAR LANÇAMENTO E TRATAR PARCELAMENTO
 async function salvarLancamento(event) {
     event.preventDefault();
     if (!usuarioAtual) return;
@@ -102,14 +93,15 @@ async function salvarLancamento(event) {
     const descricao = document.getElementById("input-descricao").value;
     const valorTotal = parseFloat(document.getElementById("input-valor").value);
     const dataBaseStr = document.getElementById("input-data").value;
-    const parcelas = parseInt(document.getElementById("input-parcelas").value);
+    const pagamento = document.getElementById("input-pagamento").value;
+    const categoria = document.getElementById("input-categoria").value;
+    const parcelas = (tipo === "despesa" && pagamento === "Cartão de Crédito") ? parseInt(document.getElementById("input-parcelas").value) : 1;
 
-    // Validação do Limite Freemium (Plano Gratuito)
     if (perfilUsuario.plano !== "pro") {
         const totalLancamentosMes = await contarLancamentosMesAtual();
         if (totalLancamentosMes + parcelas > LIMITE_LANCAMENTOS_GRATIS) {
             abrirModalUpgrade();
-            alert(`Você atingiu o limite de ${LIMITE_LANCAMENTOS_GRATIS} lançamentos do plano gratuito neste mês! Faça o upgrade para o PRO para continuar.`);
+            alert(`Você atingiu o limite de ${LIMITE_LANCAMENTOS_GRATIS} lançamentos do plano gratuito neste mês! Faça o upgrade para o PRO.`);
             return;
         }
     }
@@ -117,7 +109,6 @@ async function salvarLancamento(event) {
     const valorParcela = valorTotal / parcelas;
     const novosRegistros = [];
 
-    // Gerar as parcelas mês a mês automaticamente
     for (let i = 0; i < parcelas; i++) {
         let dataParcela = new Date(dataBaseStr + "T00:00:00");
         dataParcela.setMonth(dataParcela.getMonth() + i);
@@ -127,7 +118,9 @@ async function salvarLancamento(event) {
             tipo: tipo,
             descricao: parcelas > 1 ? `${descricao} (${i + 1}/${parcelas})` : descricao,
             valor: parseFloat(valorParcela.toFixed(2)),
-            data: dataParcela.toISOString().split("T")[0]
+            data: dataParcela.toISOString().split("T")[0],
+            forma_pagamento: pagamento,
+            categoria: categoria
         });
     }
 
@@ -138,12 +131,11 @@ async function salvarLancamento(event) {
     } else {
         document.getElementById("form-lancamento").reset();
         document.getElementById("input-data").valueAsDate = new Date();
-        alternarCampoParcelas();
+        alternarCamposFormulario();
         await carregarDadosDoMes();
     }
 }
 
-// CONTAGEM DE LANÇAMENTOS DO MÊS PARA O FREEMIUM
 async function contarLancamentosMesAtual() {
     const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
     const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
@@ -158,7 +150,6 @@ async function contarLancamentosMesAtual() {
     return count || 0;
 }
 
-// CARREGAR E EXIBIR OS DADOS DO MÊS SELECIONADO
 async function carregarDadosDoMes() {
     if (!usuarioAtual) return;
 
@@ -178,18 +169,15 @@ async function carregarDadosDoMes() {
         return;
     }
 
-    // Atualizar Contagem Freemium no Painel
     const totalMes = lancamentos ? lancamentos.length : 0;
     const statusLimite = document.getElementById("status-limite-mensal");
-    if (perfilUsuario.plano === "pro") {
-        statusLimite.innerText = `Lançamentos no mês: ${totalMes} (Ilimitado)`;
-    } else {
-        statusLimite.innerText = `Lançamentos no mês: ${totalMes}/${LIMITE_LANCAMENTOS_GRATIS}`;
-    }
+    statusLimite.innerText = perfilUsuario.plano === "pro" 
+        ? `Lançamentos no mês: ${totalMes} (Ilimitado)`
+        : `Lançamentos no mês: ${totalMes}/${LIMITE_LANCAMENTOS_GRATIS}`;
 
-    // Calcular Totais
     let totalReceitas = 0;
     let totalDespesas = 0;
+    const categoriasGastos = {};
 
     const tabela = document.getElementById("tabela-lancamentos");
     tabela.innerHTML = "";
@@ -198,8 +186,13 @@ async function carregarDadosDoMes() {
         tabela.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento cadastrado para este mês.</td></tr>`;
     } else {
         lancamentos.forEach((item) => {
-            if (item.tipo === "receita") totalReceitas += item.valor;
-            else totalDespesas += item.valor;
+            if (item.tipo === "receita") {
+                totalReceitas += item.valor;
+            } else {
+                totalDespesas += item.valor;
+                const cat = item.categoria || "Outros";
+                categoriasGastos[cat] = (categoriasGastos[cat] || 0) + item.valor;
+            }
 
             const dataFormatada = new Date(item.data + "T00:00:00").toLocaleDateString("pt-BR");
             const ehReceita = item.tipo === "receita";
@@ -207,18 +200,14 @@ async function carregarDadosDoMes() {
             const tr = document.createElement("tr");
             tr.className = "hover:bg-slate-700/30 transition";
             tr.innerHTML = `
-                <td class="p-3 text-slate-400">${dataFormatada}</td>
-                <td class="p-3 font-medium text-white">${item.descricao}</td>
-                <td class="p-3">
-                    <span class="text-xs px-2 py-0.5 rounded-full ${ehReceita ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}">
-                        ${ehReceita ? 'Receita' : 'Despesa'}
-                    </span>
-                </td>
-                <td class="p-3 text-right font-bold ${ehReceita ? 'text-emerald-400' : 'text-rose-400'}">
+                <td class="p-2.5 text-slate-400 text-xs">${dataFormatada}</td>
+                <td class="p-2.5 font-medium text-white">${item.descricao}</td>
+                <td class="p-2.5 text-xs text-slate-300">${item.forma_pagamento || 'Pix'}</td>
+                <td class="p-2.5 text-right font-bold ${ehReceita ? 'text-emerald-400' : 'text-rose-400'}">
                     ${ehReceita ? '+' : '-'} R$ ${item.valor.toFixed(2).replace('.', ',')}
                 </td>
-                <td class="p-3 text-center">
-                    <button onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition p-1" title="Excluir">
+                <td class="p-2.5 text-center">
+                    <button onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition" title="Excluir">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </td>
@@ -231,21 +220,69 @@ async function carregarDadosDoMes() {
     document.getElementById("total-receitas").innerText = `R$ ${totalReceitas.toFixed(2).replace('.', ',')}`;
     document.getElementById("total-despesas").innerText = `R$ ${totalDespesas.toFixed(2).replace('.', ',')}`;
     document.getElementById("total-saldo").innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
+
+    atualizarGraficoCategorias(categoriasGastos);
 }
 
-// DELETAR LANÇAMENTO
+function atualizarGraficoCategorias(dadosCategorias) {
+    const ctx = document.getElementById("grafico-categorias").getContext("2d");
+    const labels = Object.keys(dadosCategorias);
+    const valores = Object.values(dadosCategorias);
+
+    if (instanciaGrafico) {
+        instanciaGrafico.destroy();
+    }
+
+    if (labels.length === 0) {
+        instanciaGrafico = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Sem despesas'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#334155']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+        return;
+    }
+
+    instanciaGrafico = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: valores,
+                backgroundColor: [
+                    '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#94a3b8', font: { size: 10 } }
+                }
+            }
+        }
+    });
+}
+
 async function deletarLancamento(id) {
     if (!confirm("Tem certeza que deseja excluir este lançamento?")) return;
-
     const { error } = await supabase.from("gastos").delete().eq("id", id);
-    if (error) {
-        alert("Erro ao excluir lançamento: " + error.message);
-    } else {
-        await carregarDadosDoMes();
-    }
+    if (error) alert("Erro ao excluir: " + error.message);
+    else await carregarDadosDoMes();
 }
 
-// MODAL DE UPGRADE E AUTENTICAÇÃO
 function abrirModalUpgrade() {
     document.getElementById("modal-upgrade").classList.remove("hidden");
 }
@@ -255,7 +292,7 @@ function fecharModalUpgrade() {
 }
 
 function solicitarUpgrade() {
-    alert("Redirecionando para a página de pagamento seguro (Mercado Pago / Stripe)...");
+    alert("Redirecionando para a página de pagamento seguro...");
 }
 
 async function fazerLogout() {
