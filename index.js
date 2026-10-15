@@ -1,5 +1,5 @@
 const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
-const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Cole aqui a sua chave anon real do Supabase
+const SUPABASE_KEY = "sb_publishable_hoyDXLDeGE51ney2E7e-FA_m8owsM0";
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -22,7 +22,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function verificarAutenticacao() {
     const { data: { user } } = await db.auth.getUser();
     if (!user) {
-        window.location.href = "/";
+        if (window.location.pathname !== "/" && window.location.pathname !== "/index.html" && !window.location.pathname.endsWith("/")) {
+            window.location.href = "/";
+        }
         return;
     }
     usuarioAtual = user;
