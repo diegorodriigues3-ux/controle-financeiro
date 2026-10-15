@@ -1,7 +1,9 @@
 const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
-const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Certifique-se de manter sua chave real
+const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Cole sua chave anon real aqui
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Evita duplicidade de declaração usando window.supabase
+window.supabaseClient = window.supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabaseClient;
 
 let usuarioAtual = null;
 let mesAtual = new Date().getMonth();
