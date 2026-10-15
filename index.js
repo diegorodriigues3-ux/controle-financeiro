@@ -19,35 +19,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function verificarAutenticacao() {
-    // 1. Tenta pegar a sessão ativa padrão do Supabase
-    const { data: { session } } = await db.auth.getSession();
+    // Tenta pegar a sessão ativa do Supabase
+    const { data: { session }, error } = await db.auth.getSession();
     
     if (session && session.user) {
         usuarioAtual = session.user;
     } else {
-        // 2. Se falhar, tenta via getUser()
+        // Tenta buscar o usuário diretamente
         const { data: { user } } = await db.auth.getUser();
         if (user) {
             usuarioAtual = user;
-        } else {
-            // 3. Fallback de emergência: Tenta extrair o usuário do cache local do Supabase no navegador
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.includes('supabase.auth.token')) {
-                    try {
-                        const item = JSON.parse(localStorage.getItem(key));
-                        if (item && item.currentSession && item.currentSession.user) {
-                            usuarioAtual = item.currentSession.user;
-                            break;
-                        }
-                    } catch (e) {}
-                }
-            }
         }
     }
 
     if (!usuarioAtual) {
-        console.warn("Nenhum usuário logado detectado.");
+        // Se não houver usuário logado, redireciona para a tela de login (raiz)
+        window.location.href = "/";
         return;
     }
 
@@ -112,24 +99,9 @@ function alternarCamposFormulario() {
 }
 
 async function salvarLancamento() {
-    // Se o usuário ainda estiver nulo, força uma última varredura no localStorage antes de desistir
     if (!usuarioAtual) {
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.includes('supabase.auth.token')) {
-                try {
-                    const item = JSON.parse(localStorage.getItem(key));
-                    if (item && item.currentSession && item.currentSession.user) {
-                        usuarioAtual = item.currentSession.user;
-                        break;
-                    }
-                } catch (e) {}
-            }
-        }
-    }
-
-    if (!usuarioAtual) {
-        alert("Atenção: Nenhum usuário está logado no sistema. Faça login novamente.");
+        alert("Sessão expirada. Por favor, faça login novamente.");
+        window.location.href = "/";
         return;
     }
 
@@ -341,6 +313,10 @@ function solicitarUpgrade() {
 }
 
 async function fazerLogout() {
-    await db.auth.signOut();
+    // Força a limpeza do localStorage e encerra a sessão no Supabase
+    try {
+        await db.auth.signOut();
+    } catch (e) {}
+    localStorage.clear();
     window.location.href = "/";
 }
