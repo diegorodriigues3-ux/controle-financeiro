@@ -19,25 +19,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function verificarAutenticacao() {
-    // Tenta obter a sessão ativa do usuário
+    // 1. Tenta pegar a sessão ativa padrão do Supabase
     const { data: { session } } = await db.auth.getSession();
     
     if (session && session.user) {
         usuarioAtual = session.user;
     } else {
-        // Tenta obter via getUser caso a sessão ainda esteja carregando
+        // 2. Se falhar, tenta via getUser()
         const { data: { user } } = await db.auth.getUser();
         if (user) {
             usuarioAtual = user;
+        } else {
+            // 3. Fallback de emergência: Tenta extrair o usuário do cache local do Supabase no navegador
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.includes('supabase.auth.token')) {
+                    try {
+                        const item = JSON.parse(localStorage.getItem(key));
+                        if (item && item.currentSession && item.currentSession.user) {
+                            usuarioAtual = item.currentSession.user;
+                            break;
+                        }
+                    } catch (e) {}
+                }
+            }
         }
     }
 
     if (!usuarioAtual) {
         console.warn("Nenhum usuário logado detectado.");
-        // Se realmente não houver usuário logado e você quiser redirecionar para o login:
-        if (window.location.pathname !== "/" && window.location.pathname !== "/index.html" && !window.location.pathname.endsWith("/")) {
-            window.location.href = "/";
-        }
         return;
     }
 
@@ -102,15 +112,25 @@ function alternarCamposFormulario() {
 }
 
 async function salvarLancamento() {
-    // Se o usuarioAtual ainda estiver nulo, tenta recuperar a sessão novamente no clique
+    // Se o usuário ainda estiver nulo, força uma última varredura no localStorage antes de desistir
     if (!usuarioAtual) {
-        const { data: { session } } = await db.auth.getSession();
-        if (session && session.user) {
-            usuarioAtual = session.user;
-        } else {
-            alert("Atenção: Nenhum usuário está logado no sistema. Faça login novamente.");
-            return;
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.includes('supabase.auth.token')) {
+                try {
+                    const item = JSON.parse(localStorage.getItem(key));
+                    if (item && item.currentSession && item.currentSession.user) {
+                        usuarioAtual = item.currentSession.user;
+                        break;
+                    }
+                } catch (e) {}
+            }
         }
+    }
+
+    if (!usuarioAtual) {
+        alert("Atenção: Nenhum usuário está logado no sistema. Faça login novamente.");
+        return;
     }
 
     const tipo = document.getElementById("input-tipo").value;
