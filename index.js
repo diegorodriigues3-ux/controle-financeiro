@@ -6,8 +6,8 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ESTADO DA APLICAÇÃO
 let usuarioAtual = null;
-let mesAtual = new Date().getMonth();
-let anoAtual = new Date().getFullYear();
+let mesAtual = new Date().getMonth(); // Mês atual (0 = Jan, 9 = Out, etc.)
+let anoAtual = new Date().getFullYear(); // Ano atual (ex: 2026)
 let perfilUsuario = { plano: 'gratuito' };
 let instanciaGrafico = null;
 
@@ -45,14 +45,15 @@ function atualizarInterfacePlano() {
     if (perfilUsuario.plano === "pro") {
         badgePlano.innerText = "Plano PRO 👑";
         badgePlano.className = "bg-amber-900/60 text-amber-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-amber-500/30";
-        btnUpgrade.classList.add("hidden");
+        if (btnUpgrade) btnUpgrade.classList.add("hidden");
     } else {
         badgePlano.innerText = "Plano Gratuito";
         badgePlano.className = "bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30";
-        btnUpgrade.classList.remove("hidden");
+        if (btnUpgrade) btnUpgrade.classList.remove("hidden");
     }
 }
 
+// MUDAR DE MÊS (AVANÇAR E VOLTAR)
 function mudarMes(delta) {
     mesAtual += delta;
     if (mesAtual > 11) {
@@ -72,6 +73,7 @@ function atualizarDisplayMesAno() {
     document.getElementById("display-mes-ano").innerText = `${nomeMes} de ${anoAtual}`;
 }
 
+// MOSTRAR PARCELAMENTO APENAS SE FOR CRÉDITO
 function alternarCamposFormulario() {
     const tipo = document.getElementById("input-tipo").value;
     const pagamento = document.getElementById("input-pagamento").value;
@@ -85,6 +87,7 @@ function alternarCamposFormulario() {
     }
 }
 
+// SALVAR E GERAR PARCELAS NOS MESES SEGUINTES
 async function salvarLancamento(event) {
     event.preventDefault();
     if (!usuarioAtual) return;
@@ -95,13 +98,16 @@ async function salvarLancamento(event) {
     const dataBaseStr = document.getElementById("input-data").value;
     const pagamento = document.getElementById("input-pagamento").value;
     const categoria = document.getElementById("input-categoria").value;
+    
+    // Define parcelas: se for Crédito, pega o select, senão é 1x à vista
     const parcelas = (tipo === "despesa" && pagamento === "Cartão de Crédito") ? parseInt(document.getElementById("input-parcelas").value) : 1;
 
+    // Checagem do plano gratuito
     if (perfilUsuario.plano !== "pro") {
         const totalLancamentosMes = await contarLancamentosMesAtual();
         if (totalLancamentosMes + parcelas > LIMITE_LANCAMENTOS_GRATIS) {
             abrirModalUpgrade();
-            alert(`Você atingiu o limite de ${LIMITE_LANCAMENTOS_GRATIS} lançamentos do plano gratuito neste mês! Faça o upgrade para o PRO.`);
+            alert(`Limite do plano gratuito atingido (${LIMITE_LANCAMENTOS_GRATIS} lançamentos/mês). Assine o PRO para ilimitado!`);
             return;
         }
     }
@@ -109,6 +115,7 @@ async function salvarLancamento(event) {
     const valorParcela = valorTotal / parcelas;
     const novosRegistros = [];
 
+    // Cria um registro individual para cada mês do parcelamento
     for (let i = 0; i < parcelas; i++) {
         let dataParcela = new Date(dataBaseStr + "T00:00:00");
         dataParcela.setMonth(dataParcela.getMonth() + i);
@@ -127,7 +134,7 @@ async function salvarLancamento(event) {
     const { error } = await supabase.from("gastos").insert(novosRegistros);
 
     if (error) {
-        alert("Erro ao salvar lançamento: " + error.message);
+        alert("Erro ao salvar: " + error.message);
     } else {
         document.getElementById("form-lancamento").reset();
         document.getElementById("input-data").valueAsDate = new Date();
@@ -150,9 +157,11 @@ async function contarLancamentosMesAtual() {
     return count || 0;
 }
 
+// CARREGAR APENAS OS DADOS DO MÊS SELECIONADO
 async function carregarDadosDoMes() {
     if (!usuarioAtual) return;
 
+    // Calcula o primeiro e último dia do mês selecionado
     const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
     const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
 
@@ -171,9 +180,11 @@ async function carregarDadosDoMes() {
 
     const totalMes = lancamentos ? lancamentos.length : 0;
     const statusLimite = document.getElementById("status-limite-mensal");
-    statusLimite.innerText = perfilUsuario.plano === "pro" 
-        ? `Lançamentos no mês: ${totalMes} (Ilimitado)`
-        : `Lançamentos no mês: ${totalMes}/${LIMITE_LANCAMENTOS_GRATIS}`;
+    if (statusLimite) {
+        statusLimite.innerText = perfilUsuario.plano === "pro" 
+            ? `Lançamentos no mês: ${totalMes} (Ilimitado)`
+            : `Lançamentos no mês: ${totalMes}/${LIMITE_LANCAMENTOS_GRATIS}`;
+    }
 
     let totalReceitas = 0;
     let totalDespesas = 0;
@@ -183,7 +194,7 @@ async function carregarDadosDoMes() {
     tabela.innerHTML = "";
 
     if (!lancamentos || lancamentos.length === 0) {
-        tabela.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento cadastrado para este mês.</td></tr>`;
+        tabela.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento cadastrado neste mês.</td></tr>`;
     } else {
         lancamentos.forEach((item) => {
             if (item.tipo === "receita") {
@@ -225,7 +236,9 @@ async function carregarDadosDoMes() {
 }
 
 function atualizarGraficoCategorias(dadosCategorias) {
-    const ctx = document.getElementById("grafico-categorias").getContext("2d");
+    const canvas = document.getElementById("grafico-categorias");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
     const labels = Object.keys(dadosCategorias);
     const valores = Object.values(dadosCategorias);
 
@@ -238,16 +251,9 @@ function atualizarGraficoCategorias(dadosCategorias) {
             type: 'doughnut',
             data: {
                 labels: ['Sem despesas'],
-                datasets: [{
-                    data: [1],
-                    backgroundColor: ['#334155']
-                }]
+                datasets: [{ data: [1], backgroundColor: ['#334155'] }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
         return;
     }
@@ -258,19 +264,14 @@ function atualizarGraficoCategorias(dadosCategorias) {
             labels: labels,
             datasets: [{
                 data: valores,
-                backgroundColor: [
-                    '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'
-                ]
+                backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b']
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#94a3b8', font: { size: 10 } }
-                }
+                legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } }
             }
         }
     });
@@ -292,7 +293,7 @@ function fecharModalUpgrade() {
 }
 
 function solicitarUpgrade() {
-    alert("Redirecionando para a página de pagamento seguro...");
+    alert("Redirecionando para a página de pagamento...");
 }
 
 async function fazerLogout() {
