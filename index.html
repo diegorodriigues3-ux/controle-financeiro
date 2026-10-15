@@ -210,7 +210,7 @@
 
   </main>
 
-  <!-- MODAL DE LOGIN / CADASTRO COM GOOGLE -->
+  <!-- MODAL DE LOGIN / CADASTRO COM GOOGLE E E-MAIL -->
   <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
     <div class="card-dark p-6 sm:p-8 rounded-3xl w-full max-w-sm relative shadow-2xl space-y-5">
       <button onclick="fecharModalAuth()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">&times;</button>
@@ -221,7 +221,7 @@
         <p class="text-xs text-slate-400">Acesse sua conta para gerenciar suas finanças com segurança.</p>
       </div>
 
-      <!-- BOTÃO DE LOGIN COM GOOGLE (1-CLIQUE) -->
+      <!-- BOTÃO DE LOGIN COM GOOGLE -->
       <button onclick="fazerLoginGoogle()" class="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-3 shadow-md">
         <i class="fa-brands fa-google text-red-500 text-sm"></i>
         <span>Continuar com o Google</span>
@@ -233,7 +233,7 @@
         <div class="flex-grow border-t border-slate-800"></div>
       </div>
 
-      <form onsubmit="tratarAuthSubmit(event)" class="space-y-3">
+      <div class="space-y-3">
         <div>
           <input type="email" id="auth-email" placeholder="Seu e-mail" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
         </div>
@@ -241,14 +241,14 @@
           <input type="password" id="auth-password" placeholder="Sua senha" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
         </div>
         <div class="flex gap-2 pt-1">
-          <button type="submit" onclick="modoAuth = 'login'" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2 rounded-xl text-xs transition">
+          <button type="button" onclick="fazerLoginEmail()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2 rounded-xl text-xs transition">
             Entrar
           </button>
-          <button type="submit" onclick="modoAuth = 'cadastro'" class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold py-2 rounded-xl text-xs border border-slate-800 transition">
+          <button type="button" onclick="fazerCadastroEmail()" class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold py-2 rounded-xl text-xs border border-slate-800 transition">
             Cadastrar
           </button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 
@@ -259,7 +259,6 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let usuarioAtual = null;
-    let modoAuth = 'login';
 
     window.addEventListener('DOMContentLoaded', async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -327,19 +326,42 @@
       if (error) alert('Erro ao autenticar com Google: ' + error.message);
     }
 
-    async function tratarAuthSubmit(e) {
-      e.preventDefault();
+    // LOGIN COM E-MAIL E SENHA
+    async function fazerLoginEmail() {
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
 
-      let result = modoAuth === 'login' 
-        ? await supabaseClient.auth.signInWithPassword({ email, password })
-        : await supabaseClient.auth.signUp({ email, password });
+      if (!email || !password) {
+        alert('Preencha o e-mail e a senha.');
+        return;
+      }
 
-      if (result.error) alert('Erro: ' + result.error.message);
-      else {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        alert('Erro ao entrar: ' + error.message);
+      } else {
         fecharModalAuth();
-        if (modoAuth === 'cadastro') alert('Conta criada com sucesso!');
+      }
+    }
+
+    // CADASTRO COM E-MAIL E SENHA
+    async function fazerCadastroEmail() {
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
+
+      if (!email || !password) {
+        alert('Preencha o e-mail e a senha.');
+        return;
+      }
+
+      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+      if (error) {
+        alert('Erro ao cadastrar: ' + error.message);
+      } else {
+        fecharModalAuth();
+        alert('Conta criada com sucesso! Já podes utilizar o sistema.');
       }
     }
 
@@ -347,7 +369,7 @@
       await supabaseClient.auth.signOut();
     }
 
-    // PROCESSAR QUICK INPUT NO SITE (VINCULADO AO USUÁRIO LOGADO)
+    // PROCESSAR QUICK INPUT NO SITE
     async function processarQuickInput(e) {
       e.preventDefault();
       if (!usuarioAtual) return abrirModalAuth();
@@ -363,7 +385,7 @@
       const descricao = texto.replace(matchValor[0], '').trim() || 'Gasto Rápido Web';
 
       const { error } = await supabaseClient.from('gastos').insert([{
-        whatsapp_number: usuarioAtual.email, // Vincula ao e-mail/identificador do usuário logado
+        whatsapp_number: usuarioAtual.email,
         descricao: descricao,
         valor: valor,
         categoria: 'Geral',
@@ -379,7 +401,7 @@
       }
     }
 
-    // CARREGAR APENAS OS DADOS DO USUÁRIO LOGADO
+    // CARREGAR TRANSAÇÕES DO USUÁRIO LOGADO
     async function carregarTransacoes() {
       if (!usuarioAtual) return;
 

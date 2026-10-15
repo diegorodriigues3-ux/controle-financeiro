@@ -1,425 +1,165 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinanceiraMente — Plataforma Inteligente de Finanças</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- FontAwesome & Google Fonts -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .bg-financeira { background-color: #0b0f17; }
-    .card-dark { background-color: #111827; border: 1px solid #1f2937; }
-    .glow-emerald { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.15); }
-  </style>
-</head>
-<body class="bg-financeira text-slate-100 min-h-screen flex flex-col antialiased">
+import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import express from 'express';
+import qrcode from 'qrcode';
+import pino from 'pino';
 
-  <!-- NAVBAR / CABEÇALHO -->
-  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex justify-between items-center">
-      
-      <!-- LOGO FINANCEIRAMENTE + CEREBRINHO -->
-      <div class="flex items-center space-x-3 cursor-pointer" onclick="mudarAba('conteudos')">
-        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl shadow-inner">
-          🧠
-        </div>
-        <div>
-          <span class="font-extrabold text-lg tracking-tight text-white block leading-none">Financeira<span class="text-emerald-400">Mente</span></span>
-          <span class="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Controle & Educação</span>
-        </div>
-      </div>
+const app = express();
+app.use(express.json());
 
-      <!-- NAVEGAÇÃO DE ABAS -->
-      <nav class="hidden md:flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-        <button onclick="mudarAba('conteudos')" id="nav-conteudos" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition text-emerald-400 bg-slate-800 border border-slate-700">
-          <i class="fa-solid fa-lightbulb mr-1.5"></i>Dicas & Conteúdos
-        </button>
-        <button onclick="mudarAba('app')" id="nav-app" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white">
-          <i class="fa-solid fa-chart-pie mr-1.5"></i>Meu Controle
-        </button>
-      </nav>
+const GROQ_KEY = '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';
+const SUPABASE_URL = 'https://ugyrxgpffvrmzomldibk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_hoyDXLDegE51neY2E7e-FA_m8owsoDe';
 
-      <!-- BOTÃO LOGIN / USUÁRIO -->
-      <div id="user-status-area">
-        <button onclick="abrirModalAuth()" id="btn-login-header" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition shadow-lg shadow-emerald-500/10 flex items-center gap-2">
-          <i class="fa-solid fa-user-check"></i>
-          <span>Entrar / Cadastrar</span>
-        </button>
-        <div id="user-logged-info" class="hidden flex items-center space-x-3">
-          <span id="user-email" class="text-xs text-slate-400 hidden sm:inline font-medium"></span>
-          <button onclick="fazerLogout()" class="text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-800 transition">
-            Sair <i class="fa-solid fa-arrow-right-from-bracket ml-1"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+let qrCodeAtual = '';
+let statusConexao = 'A iniciar...';
 
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+async function iniciarWhatsApp() {
+  const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
 
-    <!-- ABA 1: FEED DE CONTEÚDOS & DICAS -->
-    <section id="aba-conteudos" class="space-y-6">
-      
-      <!-- HERO BANNER COM O CEREBRINHO -->
-      <div class="card-dark p-6 sm:p-8 rounded-3xl glow-emerald relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="space-y-3 z-10 max-w-xl">
-          <div class="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full">
-            <span>🧠 Comunidade FinanceiraMente</span>
-          </div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
-            Assuma o controle do seu dinheiro sem complicação.
-          </h1>
-          <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
-            Aprenda os conceitos de organização, descubra para onde vai cada centavo e prepare sua vida financeira para o futuro.
-          </p>
-          <div class="pt-2">
-            <button onclick="mudarAba('app')" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-emerald-500/20 inline-flex items-center gap-2">
-              <span>Acessar Meu Painel Financeiro</span>
-              <i class="fa-solid fa-arrow-right"></i>
-            </button>
-          </div>
-        </div>
-        
-        <!-- MASCOTE CEREBRINHO -->
-        <div class="text-8xl sm:text-9xl select-none filter drop-shadow-[0_10px_20px_rgba(16,185,129,0.2)]">
-          🧠
-        </div>
-      </div>
+  const sock = makeWASocket({
+    auth: state,
+    logger: pino({ level: 'silent' })
+  });
 
-      <!-- CARDS DE CONTEÚDO / DICAS RÁPIDAS -->
-      <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <div class="card-dark p-5 rounded-2xl space-y-3 hover:border-emerald-500/30 transition">
-          <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 text-lg">
-            <i class="fa-solid fa-bullseye"></i>
-          </div>
-          <h3 class="font-bold text-sm text-white">1. O Primeiro Passo</h3>
-          <p class="text-slate-400 text-xs leading-relaxed">
-            O hábito de registrar 100% dos seus gastos por 30 dias revela vazamentos invisíveis no seu orçamento pessoal.
-          </p>
-        </div>
-
-        <div class="card-dark p-5 rounded-2xl space-y-3 hover:border-emerald-500/30 transition">
-          <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 text-lg">
-            <i class="fa-solid fa-shield-halved"></i>
-          </div>
-          <h3 class="font-bold text-sm text-white">2. Reserva de Emergência</h3>
-          <p class="text-slate-400 text-xs leading-relaxed">
-            Guarde de 3 a 6 meses do seu custo de vida num investimento seguro com liquidez diária.
-          </p>
-        </div>
-
-        <div class="card-dark p-5 rounded-2xl space-y-3 hover:border-emerald-500/30 transition">
-          <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 text-lg">
-            <i class="fa-solid fa-bolt"></i>
-          </div>
-          <h3 class="font-bold text-sm text-white">3. Lançamento Instantâneo</h3>
-          <p class="text-slate-400 text-xs leading-relaxed">
-            Fez uma compra no Pix ou Cartão? Registre em segundos na barra rápida antes que caia no esquecimento.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ABA 2: PAINEL DE CONTROLE FINANCEIRO -->
-    <section id="aba-app" class="hidden space-y-6">
-
-      <!-- BANNER AVISO DE LOGIN -->
-      <div id="alert-login-required" class="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl text-amber-300 text-xs flex justify-between items-center">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-circle-exclamation text-amber-400 text-sm"></i>
-          <span>Faça login para visualizar e salvar seus gastos no seu perfil.</span>
-        </div>
-        <button onclick="abrirModalAuth()" class="bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-amber-300 transition">
-          Fazer Login
-        </button>
-      </div>
-
-      <!-- BARRA DE LANÇAMENTO RÁPIDO (QUICK INPUT) -->
-      <div class="card-dark p-5 rounded-2xl shadow-xl">
-        <div class="flex items-center justify-between mb-3">
-          <label class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-bolt text-emerald-400"></i> Lançamento Rápido no Site
-          </label>
-          <span class="text-[10px] text-slate-500">Exemplo: 25 mercado pix</span>
-        </div>
-        <form onsubmit="processarQuickInput(event)" class="flex flex-col sm:flex-row gap-3">
-          <input type="text" id="input-quick" placeholder='Digite: "45 farmacia" ou "80 gasolina cdb"' 
-                 class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/80 transition">
-          <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2">
-            <span>Salvar Gasto</span>
-            <i class="fa-solid fa-paper-plane"></i>
-          </button>
-        </form>
-      </div>
-
-      <!-- CARDS DE RESUMO FINANCEIRO -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="card-dark p-5 rounded-2xl space-y-1">
-          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Registrado de Despesas</span>
-          <div id="card-saidas" class="text-2xl font-extrabold text-rose-400 tracking-tight">R$ 0,00</div>
-        </div>
-
-        <div class="card-dark p-5 rounded-2xl space-y-1">
-          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status da Conexão</span>
-          <div class="text-sm font-bold text-emerald-400 tracking-tight flex items-center gap-2 mt-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Integração Supabase Ativa</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- HISTÓRICO DE LANÇAMENTOS (LÊ A TABELA GASTOS) -->
-      <div class="card-dark rounded-2xl overflow-hidden">
-        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-slate-300">Seus Lançamentos (Web & WhatsApp)</h3>
-          <button onclick="carregarTransacoes()" class="text-[11px] text-emerald-400 hover:underline">
-            <i class="fa-solid fa-rotate mr-1"></i>Atualizar
-          </button>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-              <tr>
-                <th class="p-3.5">Item / Descrição</th>
-                <th class="p-3.5">Categoria</th>
-                <th class="p-3.5">Pagamento</th>
-                <th class="p-3.5">Origem / Número</th>
-                <th class="p-3.5">Valor</th>
-                <th class="p-3.5 text-right">Ação</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-corpo" class="divide-y divide-slate-800/60">
-              <tr>
-                <td colspan="6" class="p-6 text-center text-slate-500">Nenhum gasto encontrado na base de dados.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </section>
-
-  </main>
-
-  <!-- MODAL DE LOGIN / CADASTRO DA CONTA -->
-  <div id="modal-auth" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
-    <div class="card-dark p-6 sm:p-8 rounded-3xl w-full max-w-sm relative shadow-2xl space-y-5">
-      <button onclick="fecharModalAuth()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">&times;</button>
-      
-      <div class="text-center space-y-2">
-        <div class="text-3xl">🧠</div>
-        <h2 class="text-xl font-extrabold text-white">Sua conta FinanceiraMente</h2>
-        <p class="text-xs text-slate-400">Entre para sincronizar seus gastos da Web e WhatsApp.</p>
-      </div>
-
-      <form onsubmit="tratarAuthSubmit(event)" class="space-y-4">
-        <div>
-          <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">E-mail</label>
-          <input type="email" id="auth-email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div>
-          <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Senha</label>
-          <input type="password" id="auth-password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div class="flex gap-2 pt-2">
-          <button type="submit" onclick="modoAuth = 'login'" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition">
-            Entrar
-          </button>
-          <button type="submit" onclick="modoAuth = 'cadastro'" class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold py-2.5 rounded-xl text-xs border border-slate-800 transition">
-            Criar Conta
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- SCRIPT CONECTADO DIRETAMENTE AO TEU SUPABASE -->
-  <script>
-    // ⚙️ CREDENCIAIS EXTRADAS DO TEU INDEX.JS
-    const SUPABASE_URL = 'https://ugyrxgpffvrmzomldibk.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_hoyDXLDegE51neY2E7e-FA_m8owsoDe';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    let usuarioAtual = null;
-    let modoAuth = 'login';
-
-    window.addEventListener('DOMContentLoaded', async () => {
-      // Checar sessão do Supabase
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      atualizarEstadoUsuario(session?.user || null);
-
-      supabaseClient.auth.onAuthStateChange((_event, session) => {
-        atualizarEstadoUsuario(session?.user || null);
-      });
-    });
-
-    function atualizarEstadoUsuario(user) {
-      usuarioAtual = user;
-      const btnLoginHeader = document.getElementById('btn-login-header');
-      const userLoggedInfo = document.getElementById('user-logged-info');
-      const userEmail = document.getElementById('user-email');
-      const alertLoginRequired = document.getElementById('alert-login-required');
-
-      if (user) {
-        btnLoginHeader.classList.add('hidden');
-        userLoggedInfo.classList.remove('hidden');
-        userEmail.innerText = user.email;
-        if (alertLoginRequired) alertLoginRequired.classList.add('hidden');
-      } else {
-        btnLoginHeader.classList.remove('hidden');
-        userLoggedInfo.classList.add('hidden');
-        if (alertLoginRequired) alertLoginRequired.classList.remove('hidden');
-      }
-
-      carregarTransacoes();
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update;
+    
+    if (qr) {
+      qrCodeAtual = await qrcode.toDataURL(qr);
+      statusConexao = 'A aguardar leitura do QR Code';
+      console.log('📱 QR Code gerado! Abra http://localhost:3000 no seu navegador.');
     }
 
-    // NAVEGAÇÃO DE ABAS
-    function mudarAba(aba) {
-      document.getElementById('aba-conteudos').classList.add('hidden');
-      document.getElementById('aba-app').classList.add('hidden');
-      
-      const navConteudos = document.getElementById('nav-conteudos');
-      const navApp = document.getElementById('nav-app');
-
-      navConteudos.className = "px-4 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white";
-      navApp.className = "px-4 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white";
-
-      if (aba === 'conteudos') {
-        document.getElementById('aba-conteudos').classList.remove('hidden');
-        navConteudos.className = "px-4 py-1.5 rounded-lg text-xs font-semibold transition text-emerald-400 bg-slate-800 border border-slate-700";
-      } else {
-        document.getElementById('aba-app').classList.remove('hidden');
-        navApp.className = "px-4 py-1.5 rounded-lg text-xs font-semibold transition text-emerald-400 bg-slate-800 border border-slate-700";
+    if (connection === 'close') {
+      statusConexao = 'Desconectado';
+      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+      console.log('⚠️ Conexão fechada. A reconectar...', shouldReconnect);
+      if (shouldReconnect) {
+        iniciarWhatsApp();
       }
+    } else if (connection === 'open') {
+      statusConexao = 'Conectado com sucesso!';
+      qrCodeAtual = '';
+      console.log('✅ WhatsApp conectado com sucesso!');
     }
+  });
 
-    function abrirModalAuth() { document.getElementById('modal-auth').classList.remove('hidden'); }
-    function fecharModalAuth() { document.getElementById('modal-auth').classList.add('hidden'); }
+  sock.ev.on('creds.update', saveCreds);
 
-    async function tratarAuthSubmit(e) {
-      e.preventDefault();
-      const email = document.getElementById('auth-email').value;
-      const password = document.getElementById('auth-password').value;
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    if (type !== 'notify') return;
 
-      let result = modoAuth === 'login' 
-        ? await supabaseClient.auth.signInWithPassword({ email, password })
-        : await supabaseClient.auth.signUp({ email, password });
+    for (const msg of messages) {
+      if (!msg.message || msg.key.fromMe) continue;
 
-      if (result.error) alert('Erro: ' + result.error.message);
-      else {
-        fecharModalAuth();
-        if (modoAuth === 'cadastro') alert('Conta criada com sucesso!');
-      }
-    }
+      const numeroWhatsapp = msg.key.remoteJid;
+      const textoMensagem = msg.message.conversation || 
+                            msg.message.extendedTextMessage?.text;
 
-    async function fazerLogout() {
-      await supabaseClient.auth.signOut();
-    }
+      if (!textoMensagem) continue;
 
-    // PROCESSAR QUICK INPUT NO SITE
-    async function processarQuickInput(e) {
-      e.preventDefault();
-      const input = document.getElementById('input-quick');
-      const texto = input.value.trim();
-      if (!texto) return;
+      console.log(`\n💬 Mensagem recebida de ${numeroWhatsapp}: "${textoMensagem}"`);
 
-      const matchValor = texto.match(/\d+([.,]\d+)?/);
-      if (!matchValor) return alert('Por favor, digite um valor (Ex: 25 mercado).');
-
-      const valor = parseFloat(matchValor[0].replace(',', '.'));
-      const descricao = texto.replace(matchValor[0], '').trim() || 'Gasto Rápido Web';
-
-      // Salva exatamente com a mesma estrutura do teu bot na tabela 'gastos'
-      const { error } = await supabaseClient.from('gastos').insert([{
-        whatsapp_number: usuarioAtual ? usuarioAtual.email : 'Web Site',
-        descricao: descricao,
-        valor: valor,
-        categoria: 'Geral',
-        forma_pagamento: 'Pix/Outros',
-        plano_usuario: 'free'
-      }]);
-
-      if (error) {
-        alert('Erro ao salvar no Supabase: ' + error.message);
-      } else {
-        input.value = '';
-        carregarTransacoes();
-      }
-    }
-
-    // CARREGAR TRANSAÇÕES DA TABELA GASTOS
-    async function carregarTransacoes() {
-      const { data, error } = await supabaseClient
-        .from('gastos')
-        .select('*')
-        .order('id', { ascending: false });
-
-      if (error) {
-        console.error('Erro ao carregar do Supabase:', error);
-        return;
-      }
-
-      renderizarTabela(data || []);
-    }
-
-    function renderizarTabela(items) {
-      const tabela = document.getElementById('tabela-corpo');
-      let totalGasto = 0;
-
-      if (!items || items.length === 0) {
-        tabela.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500">Nenhum gasto encontrado na tabela 'gastos'.</td></tr>`;
-        document.getElementById('card-saidas').innerText = 'R$ 0,00';
-        return;
-      }
-
-      tabela.innerHTML = items.map(item => {
-        const val = parseFloat(item.valor) || 0;
-        totalGasto += val;
-
-        const eWhatsapp = item.whatsapp_number && item.whatsapp_number.includes('@s.whatsapp.net');
-        const badgeOrigem = eWhatsapp 
-          ? `<span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-500/20">WhatsApp</span>`
-          : `<span class="bg-slate-800 text-slate-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700">Web Site</span>`;
-
-        return `
-          <tr class="hover:bg-slate-900/50 transition">
-            <td class="p-3.5 font-semibold text-white">${item.descricao || 'Sem nome'}</td>
-            <td class="p-3.5 text-slate-400">${item.categoria || 'Geral'}</td>
-            <td class="p-3.5 text-slate-400">${item.forma_pagamento || '-'}</td>
-            <td class="p-3.5">${badgeOrigem}</td>
-            <td class="p-3.5 font-bold text-rose-400">
-              R$ ${val.toFixed(2)}
-            </td>
-            <td class="p-3.5 text-right">
-              <button onclick="deletarTransacao('${item.id}')" class="text-slate-500 hover:text-rose-400 transition">
-                <i class="fa-regular fa-trash-can"></i>
-              </button>
-            </td>
-          </tr>
+      try {
+        const promptSistema = `
+          Você é o cérebro financeiro de um aplicativo de controle de gastos. 
+          Analise a frase enviada pelo usuário e extraia as informações estritamente no formato JSON.
+          Retorne APENAS o JSON válido sem marcação markdown e sem explicações.
+          Formatos permitidos:
+          {
+            "valor": 0.00,
+            "descricao": "nome do item ou estabelecimento",
+            "categoria": "Alimentação, Transporte, Lazer, Moradia, Saúde, Outros",
+            "forma_pagamento": "Pix, Crédito, Débito, Dinheiro"
+          }
         `;
-      }).join('');
 
-      document.getElementById('card-saidas').innerText = `R$ ${totalGasto.toFixed(2)}`;
-    }
+        const responseIa = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GROQ_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'openai/gpt-oss-20b',
+            messages: [
+              { role: 'system', content: promptSistema },
+              { role: 'user', content: `Frase do usuário: "${textoMensagem}"` }
+            ],
+            temperature: 0.1
+          })
+        });
 
-    async function deletarTransacao(id) {
-      if (!confirm('Deseja apagar este lançamento?')) return;
-      const { error } = await supabaseClient.from('gastos').delete().eq('id', id);
-      if (error) alert('Erro ao apagar: ' + error.message);
-      else carregarTransacoes();
+        const dataIa = await responseIa.json();
+        const conteudoIa = dataIa.choices[0].message.content.trim();
+        const dadosGasto = JSON.parse(conteudoIa);
+
+        const responseSupabase = await fetch(`${SUPABASE_URL}/rest/v1/gastos`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            whatsapp_number: numeroWhatsapp,
+            valor: dadosGasto.valor,
+            descricao: dadosGasto.descricao,
+            categoria: dadosGasto.categoria,
+            forma_pagamento: dadosGasto.forma_pagamento,
+            plano_usuario: 'free'
+          })
+        });
+
+        if (!responseSupabase.ok) {
+          throw new Error("Erro ao salvar no Supabase");
+        }
+
+        console.log(`✅ Gasto salvo: R$ ${dadosGasto.valor} (${dadosGasto.categoria})`);
+
+        await sock.sendMessage(numeroWhatsapp, { 
+          text: `✅ Gasto registado com sucesso!\n\n📌 *Item:* ${dadosGasto.descricao}\n💰 *Valor:* R$ ${dadosGasto.valor.toFixed(2)}\n📂 *Categoria:* ${dadosGasto.categoria}\n💳 *Pagamento:* ${dadosGasto.forma_pagamento}` 
+        });
+
+      } catch (error) {
+        console.error('❌ Erro ao processar mensagem:', error.message);
+      }
     }
-  </script>
-</body>
-</html>
+  });
+}
+
+// Página web simples para exibir o QR Code com nitidez
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="pt">
+    <head>
+      <meta charset="UTF-8">
+      <title>Conectar WhatsApp</title>
+      <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #121214; color: #fff; padding-top: 50px; }
+        h1 { color: #00b37e; }
+        .box { background: #202024; display: inline-block; padding: 30px; border-radius: 12px; border: 1px solid #29292e; }
+        img { margin-top: 20px; border-radius: 8px; background: white; padding: 10px; }
+      </style>
+      <meta http-equiv="refresh" content="5">
+    </head>
+    <body>
+      <div class="box">
+        <h1>Conectar WhatsApp ao Bot</h1>
+        <p>Estado: <strong>${statusConexao}</strong></p>
+        ${qrCodeAtual ? `<img src="${qrCodeAtual}" alt="QR Code" width="300" height="300">` : '<p>A gerar QR Code ou já conectado...</p>'}
+        <p style="margin-top: 15px; font-size: 14px; color: #a8a8b3;">A página atualiza automaticamente a cada 5 segundos.</p>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor web iniciado em http://localhost:3000`);
+});
+
+iniciarWhatsApp();
