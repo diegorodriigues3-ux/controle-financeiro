@@ -1,13 +1,11 @@
-// CONFIGURAÇÃO DO SUPABASE
 const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
-const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Mantenha sua chave anon aqui
+const SUPABASE_KEY = "SUA_CHAVE_ANON_AQUI"; // Certifique-se de manter sua chave real
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ESTADO DA APLICAÇÃO
 let usuarioAtual = null;
-let mesAtual = new Date().getMonth(); // Mês atual (0 = Jan, 9 = Out, etc.)
-let anoAtual = new Date().getFullYear(); // Ano atual (ex: 2026)
+let mesAtual = new Date().getMonth();
+let anoAtual = new Date().getFullYear();
 let perfilUsuario = { plano: 'gratuito' };
 let instanciaGrafico = null;
 
@@ -15,6 +13,7 @@ const LIMITE_LANCAMENTOS_GRATIS = 20;
 
 document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("input-data").valueAsDate = new Date();
+    alternarCamposFormulario(); // Inicializa o estado do campo de parcelas
     atualizarDisplayMesAno();
     await verificarAutenticacao();
     await carregarDadosDoMes();
@@ -53,7 +52,6 @@ function atualizarInterfacePlano() {
     }
 }
 
-// MUDAR DE MÊS (AVANÇAR E VOLTAR)
 function mudarMes(delta) {
     mesAtual += delta;
     if (mesAtual > 11) {
@@ -73,7 +71,6 @@ function atualizarDisplayMesAno() {
     document.getElementById("display-mes-ano").innerText = `${nomeMes} de ${anoAtual}`;
 }
 
-// MOSTRAR PARCELAMENTO APENAS SE FOR CRÉDITO
 function alternarCamposFormulario() {
     const tipo = document.getElementById("input-tipo").value;
     const pagamento = document.getElementById("input-pagamento").value;
@@ -87,7 +84,6 @@ function alternarCamposFormulario() {
     }
 }
 
-// SALVAR E GERAR PARCELAS NOS MESES SEGUINTES
 async function salvarLancamento(event) {
     event.preventDefault();
     if (!usuarioAtual) return;
@@ -98,16 +94,13 @@ async function salvarLancamento(event) {
     const dataBaseStr = document.getElementById("input-data").value;
     const pagamento = document.getElementById("input-pagamento").value;
     const categoria = document.getElementById("input-categoria").value;
-    
-    // Define parcelas: se for Crédito, pega o select, senão é 1x à vista
     const parcelas = (tipo === "despesa" && pagamento === "Cartão de Crédito") ? parseInt(document.getElementById("input-parcelas").value) : 1;
 
-    // Checagem do plano gratuito
     if (perfilUsuario.plano !== "pro") {
         const totalLancamentosMes = await contarLancamentosMesAtual();
         if (totalLancamentosMes + parcelas > LIMITE_LANCAMENTOS_GRATIS) {
             abrirModalUpgrade();
-            alert(`Limite do plano gratuito atingido (${LIMITE_LANCAMENTOS_GRATIS} lançamentos/mês). Assine o PRO para ilimitado!`);
+            alert(`Limite do plano gratuito atingido (${LIMITE_LANCAMENTOS_GRATIS} lançamentos/mês).`);
             return;
         }
     }
@@ -115,7 +108,6 @@ async function salvarLancamento(event) {
     const valorParcela = valorTotal / parcelas;
     const novosRegistros = [];
 
-    // Cria um registro individual para cada mês do parcelamento
     for (let i = 0; i < parcelas; i++) {
         let dataParcela = new Date(dataBaseStr + "T00:00:00");
         dataParcela.setMonth(dataParcela.getMonth() + i);
@@ -157,11 +149,9 @@ async function contarLancamentosMesAtual() {
     return count || 0;
 }
 
-// CARREGAR APENAS OS DADOS DO MÊS SELECIONADO
 async function carregarDadosDoMes() {
     if (!usuarioAtual) return;
 
-    // Calcula o primeiro e último dia do mês selecionado
     const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
     const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
 
@@ -218,7 +208,7 @@ async function carregarDadosDoMes() {
                     ${ehReceita ? '+' : '-'} R$ ${item.valor.toFixed(2).replace('.', ',')}
                 </td>
                 <td class="p-2.5 text-center">
-                    <button onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition" title="Excluir">
+                    <button type="button" onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition cursor-pointer" title="Excluir">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </td>

@@ -10,83 +10,51 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen">
-
-    <!-- BARRA SUPERIOR E NAVEGAÇÃO -->
     <header class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <span class="text-2xl">🧠</span>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-                    FinanceiraMente
-                </h1>
-                <span id="badge-plano" class="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30">
-                    Plano Gratuito
-                </span>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</h1>
+                <span id="badge-plano" class="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30">Plano Gratuito</span>
             </div>
-            
             <div class="flex items-center space-x-3">
                 <button id="btn-upgrade" onclick="abrirModalUpgrade()" class="hidden sm:inline-flex items-center text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-lg hover:bg-amber-500/30 transition">
                     <i class="fa-solid font-bold fa-crown mr-1.5"></i> Seja PRO
                 </button>
-                <button onclick="fazerLogout()" class="text-xs text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition">
-                    Sair
-                </button>
+                <button onclick="fazerLogout()" class="text-xs text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition">Sair</button>
             </div>
         </div>
     </header>
 
     <main class="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
-
-        <!-- NAVEGAÇÃO MÊS A MÊS -->
         <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-4 flex justify-between items-center shadow-lg">
-            <button onclick="mudarMes(-1)" class="p-2 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition">
-                <i class="fa-solid fa-chevron-left"></i>
-            </button>
+            <button type="button" onclick="mudarMes(-1)" class="p-3 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition cursor-pointer"><i class="fa-solid fa-chevron-left"></i></button>
             <div class="text-center">
                 <h2 id="display-mes-ano" class="text-lg font-bold text-white capitalize">Outubro de 2026</h2>
                 <span id="status-limite-mensal" class="text-xs text-slate-400">Lançamentos no mês: 0/20</span>
             </div>
-            <button onclick="mudarMes(1)" class="p-2 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition">
-                <i class="fa-solid fa-chevron-right"></i>
-            </button>
+            <button type="button" onclick="mudarMes(1)" class="p-3 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition cursor-pointer"><i class="fa-solid fa-chevron-right"></i></button>
         </section>
 
-        <!-- CARDS DE RESUMO DO MÊS -->
         <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-4">
-                <div class="flex justify-between items-center text-emerald-400 mb-1">
-                    <span class="text-sm font-medium">Receitas (Entradas)</span>
-                    <i class="fa-solid fa-circle-arrow-down"></i>
-                </div>
+                <div class="flex justify-between items-center text-emerald-400 mb-1"><span class="text-sm font-medium">Receitas (Entradas)</span><i class="fa-solid fa-circle-arrow-down"></i></div>
                 <p id="total-receitas" class="text-2xl font-bold text-emerald-300">R$ 0,00</p>
             </div>
-
             <div class="bg-rose-950/40 border border-rose-500/30 rounded-xl p-4">
-                <div class="flex justify-between items-center text-rose-400 mb-1">
-                    <span class="text-sm font-medium">Despesas (Saídas)</span>
-                    <i class="fa-solid fa-circle-arrow-up"></i>
-                </div>
+                <div class="flex justify-between items-center text-rose-400 mb-1"><span class="text-sm font-medium">Despesas (Saídas)</span><i class="fa-solid fa-circle-arrow-up"></i></div>
                 <p id="total-despesas" class="text-2xl font-bold text-rose-300">R$ 0,00</p>
             </div>
-
             <div class="bg-purple-950/40 border border-purple-500/30 rounded-xl p-4">
-                <div class="flex justify-between items-center text-purple-400 mb-1">
-                    <span class="text-sm font-medium">Saldo do Mês</span>
-                    <i class="fa-solid fa-wallet"></i>
-                </div>
+                <div class="flex justify-between items-center text-purple-400 mb-1"><span class="text-sm font-medium">Saldo do Mês</span><i class="fa-solid fa-wallet"></i></div>
                 <p id="total-saldo" class="text-2xl font-bold text-purple-300">R$ 0,00</p>
             </div>
         </section>
 
-        <!-- FORMULÁRIO DE LANÇAMENTO RÁPIDO -->
         <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg">
-            <h3 class="text-base font-semibold text-white mb-4 flex items-center">
-                <i class="fa-solid fa-bolt text-yellow-400 mr-2"></i> Lançamento Rápido
-            </h3>
-            
+            <h3 class="text-base font-semibold text-white mb-4 flex items-center"><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i> Lançamento Rápido</h3>
             <form id="form-lancamento" onsubmit="salvarLancamento(event)" class="space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    <!-- Tipo -->
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
                         <select id="input-tipo" onchange="alternarCamposFormulario()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
@@ -94,28 +62,20 @@
                             <option value="receita">🟢 Receita (Entrada)</option>
                         </select>
                     </div>
-
-                    <!-- Descrição -->
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Descrição</label>
                         <input type="text" id="input-descricao" placeholder="Ex: Mercado, Salário" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
                     </div>
-
-                    <!-- Valor -->
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Valor Total (R$)</label>
                         <input type="number" step="0.01" id="input-valor" placeholder="0,00" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
                     </div>
-
-                    <!-- Data -->
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Data</label>
                         <input type="date" id="input-data" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
                     </div>
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                    <!-- Forma de Pagamento -->
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Forma de Pagamento</label>
                         <select id="input-pagamento" onchange="alternarCamposFormulario()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
@@ -125,8 +85,6 @@
                             <option value="Débito / Boleto">🏦 Débito / Boleto</option>
                         </select>
                     </div>
-
-                    <!-- Categoria -->
                     <div>
                         <label class="block text-xs font-medium text-slate-400 mb-1">Categoria</label>
                         <select id="input-categoria" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
@@ -139,8 +97,6 @@
                             <option value="Outros">📦 Outros</option>
                         </select>
                     </div>
-
-                    <!-- Parcelamento (Só ativo se Cartão de Crédito) -->
                     <div id="container-parcelas" style="display: none;">
                         <label class="block text-xs font-medium text-slate-400 mb-1">Parcelas</label>
                         <select id="input-parcelas" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
@@ -154,17 +110,14 @@
                             <option value="12">12x sem juros</option>
                         </select>
                     </div>
-
-                    <button type="submit" id="btn-salvar" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 rounded-lg transition flex justify-center items-center sm:col-span-3 md:col-span-1">
+                    <button type="submit" id="btn-salvar" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 rounded-lg transition flex justify-center items-center sm:col-span-3 md:col-span-1 cursor-pointer">
                         <i class="fa-solid fa-plus mr-2"></i> Adicionar
                     </button>
                 </div>
             </form>
         </section>
 
-        <!-- GRÁFICO E DISTRIBUIÇÃO DOS GASTOS -->
         <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- TABELA DE LANÇAMENTOS -->
             <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg">
                 <h3 class="text-base font-semibold text-white mb-4">Lançamentos do Mês</h3>
                 <div class="overflow-x-auto max-h-80 overflow-y-auto">
@@ -179,15 +132,11 @@
                             </tr>
                         </thead>
                         <tbody id="tabela-lancamentos" class="divide-y divide-slate-700/50">
-                            <tr>
-                                <td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento neste mês.</td>
-                            </tr>
+                            <tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento neste mês.</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-
-            <!-- GRÁFICO DE CATEGORIAS -->
             <div class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center">
                 <h3 class="text-base font-semibold text-white mb-2 self-start">Gastos por Categoria</h3>
                 <div class="w-full max-w-[280px] h-[240px] flex justify-center items-center">
@@ -197,34 +146,24 @@
         </section>
     </main>
 
-    <!-- MODAL DE UPGRADE PRO -->
     <div id="modal-upgrade" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4">
         <div class="bg-slate-800 border border-purple-500/40 rounded-2xl p-6 max-w-md w-full space-y-4">
             <div class="text-center space-y-2">
-                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-full flex justify-center items-center mx-auto text-2xl">
-                    👑
-                </div>
+                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-full flex justify-center items-center mx-auto text-2xl">👑</div>
                 <h3 class="text-xl font-bold text-white">Desbloqueie o FinanceiraMente PRO</h3>
                 <p class="text-xs text-slate-400">Tenha acesso ilimitado e controle tudo diretamente no seu WhatsApp!</p>
             </div>
-
             <ul class="text-sm space-y-2.5 text-slate-300 bg-slate-900/60 p-4 rounded-xl border border-slate-700/50">
                 <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Lançamentos mensais ilimitados</li>
                 <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Bot de WhatsApp exclusivo para lançamentos rápidos</li>
                 <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Relatórios avançados e exportação de PDF</li>
             </ul>
-
             <div class="pt-2 flex flex-col space-y-2">
-                <button onclick="solicitarUpgrade()" class="w-full bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
-                    Assinar Agora por R$ 19,90/mês
-                </button>
-                <button onclick="fecharModalUpgrade()" class="w-full text-xs text-slate-400 hover:text-white py-2">
-                    Agora não
-                </button>
+                <button onclick="solicitarUpgrade()" class="w-full bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition">Assinar Agora por R$ 19,90/mês</button>
+                <button onclick="fecharModalUpgrade()" class="w-full text-xs text-slate-400 hover:text-white py-2">Agora não</button>
             </div>
         </div>
     </div>
-
     <script src="index.js"></script>
 </body>
 </html>
