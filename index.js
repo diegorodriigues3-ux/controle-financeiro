@@ -86,16 +86,25 @@ function alternarCamposFormulario() {
     }
 }
 
-async function salvarLancamento(event) {
-    event.preventDefault();
-    if (!usuarioAtual) return;
+async function salvarLancamento() {
+    if (!usuarioAtual) {
+        alert("Usuário não autenticado!");
+        return;
+    }
 
     const tipo = document.getElementById("input-tipo").value;
     const descricao = document.getElementById("input-descricao").value;
-    const valorTotal = parseFloat(document.getElementById("input-valor").value);
+    const valorTotalStr = document.getElementById("input-valor").value;
     const dataBaseStr = document.getElementById("input-data").value;
     const pagamento = document.getElementById("input-pagamento").value;
     const categoria = document.getElementById("input-categoria").value;
+
+    if (!descricao || !valorTotalStr || !dataBaseStr) {
+        alert("Por favor, preencha todos os campos obrigatórios (Descrição, Valor e Data).");
+        return;
+    }
+
+    const valorTotal = parseFloat(valorTotalStr);
     const parcelas = (tipo === "despesa" && pagamento === "Cartão de Crédito") ? parseInt(document.getElementById("input-parcelas").value) : 1;
 
     if (perfilUsuario.plano !== "pro") {
@@ -128,9 +137,10 @@ async function salvarLancamento(event) {
     const { error } = await db.from("gastos").insert(novosRegistros);
 
     if (error) {
-        alert("Erro ao salvar: " + error.message);
+        alert("Erro ao salvar no banco: " + error.message);
     } else {
-        document.getElementById("form-lancamento").reset();
+        document.getElementById("input-descricao").value = "";
+        document.getElementById("input-valor").value = "";
         document.getElementById("input-data").valueAsDate = new Date();
         alternarCamposFormulario();
         await carregarDadosDoMes();
