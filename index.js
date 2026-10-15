@@ -16,27 +16,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     alternarCamposFormulario();
     atualizarDisplayMesAno();
     await verificarAutenticacao();
-    await carregarDadosDoMes();
 });
 
 async function verificarAutenticacao() {
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) {
+    // Tenta obter a sessão ativa do usuário
+    const { data: { session } } = await db.auth.getSession();
+    
+    if (session && session.user) {
+        usuarioAtual = session.user;
+    } else {
+        // Tenta obter via getUser caso a sessão ainda esteja carregando
+        const { data: { user } } = await db.auth.getUser();
+        if (user) {
+            usuarioAtual = user;
+        }
+    }
+
+    if (!usuarioAtual) {
+        console.warn("Nenhum usuário logado detectado.");
+        // Se realmente não houver usuário logado e você quiser redirecionar para o login:
         if (window.location.pathname !== "/" && window.location.pathname !== "/index.html" && !window.location.pathname.endsWith("/")) {
             window.location.href = "/";
         }
         return;
     }
-    usuarioAtual = user;
 
+    // Busca o perfil do usuário logado
     const { data: profile } = await db
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", usuarioAtual.id)
         .single();
 
     if (profile) perfilUsuario = profile;
+    
     atualizarInterfacePlano();
+    await carregarDadosDoMes();
 }
 
 function atualizarInterfacePlano() {
@@ -87,9 +102,15 @@ function alternarCamposFormulario() {
 }
 
 async function salvarLancamento() {
+    // Se o usuarioAtual ainda estiver nulo, tenta recuperar a sessão novamente no clique
     if (!usuarioAtual) {
-        alert("Usuário não autenticado!");
-        return;
+        const { data: { session } } = await db.auth.getSession();
+        if (session && session.user) {
+            usuarioAtual = session.user;
+        } else {
+            alert("Atenção: Nenhum usuário está logado no sistema. Faça login novamente.");
+            return;
+        }
     }
 
     const tipo = document.getElementById("input-tipo").value;
@@ -100,7 +121,7 @@ async function salvarLancamento() {
     const categoria = document.getElementById("input-categoria").value;
 
     if (!descricao || !valorTotalStr || !dataBaseStr) {
-        alert("Por favor, preencha todos os campos obrigatórios (Descrição, Valor e Data).");
+        alert("Por favor, preencha a descrição, valor e data do lançamento.");
         return;
     }
 
@@ -148,6 +169,7 @@ async function salvarLancamento() {
 }
 
 async function contarLancamentosMesAtual() {
+    if (!usuarioAtual) return 0;
     const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
     const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
 
