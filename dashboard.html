@@ -10,10 +10,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_hoyDXLDeGE51ney2E7e-FA_m8owsM0";
-        const supabaseCheck = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const SUPABASE_KEY = "sb_publishable_hoyDXLDegE51neY2E7e-FA_m8owsoDe";
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        supabaseCheck.auth.getSession().then(({ data: { session } }) => {
+        // Verificação inicial de sessão
+        db.auth.getSession().then(({ data: { session } }) => {
             if (!session || !session.user) {
                 window.location.href = "/index.html";
             }
@@ -179,8 +180,6 @@
     </div>
 
     <script>
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         let usuarioAtual = null;
         let mesAtual = new Date().getMonth();
         let anoAtual = new Date().getFullYear();
@@ -480,18 +479,15 @@
         }
 
         async function fazerLogout() {
-    try {
-        await db.auth.signOut();
-    } catch (e) {
-        console.error("Erro ao deslogar:", e);
-    }
-    // Limpa qualquer cache e armazenamento local da sessão
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Força o navegador a ir para a tela de login limpando o histórico
-    window.location.replace("/index.html");
-}
+            try {
+                await db.auth.signOut();
+            } catch (e) {
+                console.error("Erro ao deslogar:", e);
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.replace("/index.html");
+        }
     </script>
 </body>
 </html>

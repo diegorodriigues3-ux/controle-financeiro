@@ -3,102 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinanceiraMente - Entrar</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>FinanceiraMente - Organize suas Finanças e Investimentos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
-        <div class="text-center space-y-2">
-            <span class="text-4xl">🧠</span>
-            <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</h1>
-            <p id="subtitulo-auth" class="text-xs text-slate-400">Faça login para acessar seu controle financeiro</p>
-        </div>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-purple-500 selection:text-white">
 
-        <div id="mensagem-status" class="hidden text-xs p-3 rounded-lg text-center font-medium"></div>
-
-        <form id="form-auth" onsubmit="realizarAcesso(event)" class="space-y-4">
-            <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">E-mail</label>
-                <input type="email" id="input-email" required placeholder="seu@email.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-purple-500 focus:outline-none">
+    <!-- Cabeçalho / Navegação -->
+    <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700 sticky top-0 z-50 p-4">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-3xl">🧠</span>
+                <span class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</span>
             </div>
-            <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Senha</label>
-                <input type="password" id="input-senha" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-white focus:border-purple-500 focus:outline-none">
+            <div class="flex items-center space-x-4">
+                <a href="#calculadora" class="hidden md:inline-block text-sm text-slate-300 hover:text-white transition">Calculadora</a>
+                <a href="#beneficios" class="hidden md:inline-block text-sm text-slate-300 hover:text-white transition">Benefícios</a>
+                <a href="login.html" class="bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm px-4 py-2 rounded-lg transition shadow-lg flex items-center space-x-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Entrar no Painel</span>
+                </a>
             </div>
-            
-            <button type="submit" id="btn-submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-3 rounded-lg transition shadow-lg cursor-pointer">
-                Entrar
-            </button>
-        </form>
-
-        <div class="text-center">
-            <button type="button" onclick="alternarModo()" id="btn-alternar" class="text-xs text-purple-400 hover:text-purple-300 transition cursor-pointer">
-                Não tem uma conta? Cadastre-se
-            </button>
         </div>
-    </div>
+    </header>
+
+    <main class="space-y-16 py-10">
+
+        <!-- Hero Section -->
+        <section class="max-w-4xl mx-auto text-center px-4 space-y-6">
+            <span class="bg-purple-900/60 text-purple-300 text-xs px-3.5 py-1.5 rounded-full font-semibold border border-purple-500/30 inline-block">
+                🚀 Tome o controle do seu futuro financeiro
+            </span>
+            <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                Transforme sua relação com o dinheiro usando a <span class="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">inteligência do FinanceiraMente</span>
+            </h1>
+            <p class="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
+                Acompanhe suas entradas, despesas, cartões de crédito e metas de investimento em um só lugar. Simples, rápido e acessível de onde você estiver.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2">
+                <a href="login.html" class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-xl transition flex items-center justify-center space-x-2">
+                    <span>Começar Agora Gratuitamente</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
+                <a href="#calculadora" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium px-6 py-3.5 rounded-xl border border-slate-700 transition text-center">
+                    Simular Investimentos
+                </a>
+            </div>
+        </section>
+
+        <!-- Destaques / Benefícios -->
+        <section id="beneficios" class="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-800/60 border border-slate-700/80 p-6 rounded-2xl space-y-3">
+                <div class="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-xl flex items-center justify-center text-xl">⚡</div>
+                <h3 class="text-lg font-bold text-white">Lançamentos Rápido</h3>
+                <p class="text-sm text-slate-400">Registre receitas e despesas em poucos segundos. Controle pagamentos via Pix, dinheiro ou parcelados no cartão.</p>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700/80 p-6 rounded-2xl space-y-3">
+                <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center text-xl">📊</div>
+                <h3 class="text-lg font-bold text-white">Gráficos por Categoria</h3>
+                <p class="text-sm text-slate-400">Visualize para onde está indo o seu dinheiro com gráficos de despesas por categoria atualizados em tempo real.</p>
+            </div>
+            <div class="bg-slate-800/60 border border-slate-700/80 p-6 rounded-2xl space-y-3">
+                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
+                <h3 class="text-lg font-bold text-white">Planejamento do Mês</h3>
+                <p class="text-sm text-slate-400">Acompanhe seu limite mensal e saiba exatamente quanto você pode gastar ou investir antes do mês acabar.</p>
+            </div>
+        </section>
+
+        <!-- Calculadora de Juros Compostos -->
+        <section id="calculadora" class="max-w-4xl mx-auto px-4">
+            <div class="bg-slate-800/90 border border-purple-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+                <div class="text-center space-y-2">
+                    <span class="text-3xl">📈</span>
+                    <h2 class="text-2xl font-bold text-white">Simulador de Juros Compostos</h2>
+                    <p class="text-xs sm:text-sm text-slate-400">Descubra o poder do tempo e dos aportes mensais nos seus investimentos</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor Inicial (R$)</label>
+                        <input type="number" id="calc-inicial" value="1000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Aporte Mensal (R$)</label>
+                        <input type="number" id="calc-mensal" value="300" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Taxa Anual (%)</label>
+                        <input type="number" step="0.1" id="calc-taxa" value="12" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Período (Anos)</label>
+                        <input type="number" id="calc-anos" value="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <button type="button" onclick="calcularJurosCompostos()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold p-3 rounded-xl transition cursor-pointer flex justify-center items-center space-x-2">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>Calcular Resultado</span>
+                </button>
+
+                <div id="resultado-calc" class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900/80 p-4 rounded-xl border border-slate-700/60 text-center">
+                    <div>
+                        <span class="text-xs text-slate-400 block mb-1">Valor Total Acumulado</span>
+                        <p id="res-total" class="text-xl font-bold text-purple-300">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block mb-1">Total Investido</span>
+                        <p id="res-investido" class="text-xl font-bold text-slate-300">R$ 0,00</p>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block mb-1">Total em Juros</span>
+                        <p id="res-juros" class="text-xl font-bold text-emerald-400">R$ 0,00</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Final -->
+        <section class="max-w-4xl mx-auto text-center px-4 py-8 space-y-4">
+            <h2 class="text-2xl sm:text-3xl font-bold text-white">Pronto para organizar suas finanças?</h2>
+            <p class="text-slate-400 text-sm sm:text-base">Crie sua conta em menos de 1 minuto e acesse o seu painel financeiro.</p>
+            <div>
+                <a href="login.html" class="inline-block bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-xl transition">
+                    Acessar Meu Painel Financeiro
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="bg-slate-800/50 border-t border-slate-800 p-6 text-center text-xs text-slate-500">
+        <p>© 2026 FinanceiraMente. Todos os direitos reservados.</p>
+    </footer>
 
     <script>
-        const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_hoyDXLDeGE51ney2E7e-FA_m8owsM0";
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        function calcularJurosCompostos() {
+            const inicial = parseFloat(document.getElementById("calc-inicial").value) || 0;
+            const mensal = parseFloat(document.getElementById("calc-mensal").value) || 0;
+            const taxaAnual = parseFloat(document.getElementById("calc-taxa").value) || 0;
+            const anos = parseInt(document.getElementById("calc-anos").value) || 0;
 
-        let modoCadastro = false;
+            const meses = anos * 12;
+            const taxaMensal = Math.pow(1 + (taxaAnual / 100), 1 / 12) - 1;
 
-        function alternarModo() {
-            modoCadastro = !modoCadastro;
-            const btnSubmit = document.getElementById("btn-submit");
-            const btnAlternar = document.getElementById("btn-alternar");
-            const subtitulo = document.getElementById("subtitulo-auth");
-            const statusDiv = document.getElementById("mensagem-status");
-            statusDiv.classList.add("hidden");
+            let total = inicial;
+            let investido = inicial;
 
-            if (modoCadastro) {
-                subtitulo.innerText = "Crie sua conta para começar";
-                btnSubmit.innerText = "Criar Conta";
-                btnAlternar.innerText = "Já tem uma conta? Faça login";
-            } else {
-                subtitulo.innerText = "Faça login para acessar seu controle financeiro";
-                btnSubmit.innerText = "Entrar";
-                btnAlternar.innerText = "Não tem uma conta? Cadastre-se";
+            for (let i = 0; i < meses; i++) {
+                total += mensal;
+                total *= (1 + taxaMensal);
+                investido += mensal;
             }
+
+            const juros = total - investido;
+
+            document.getElementById("res-total").innerText = `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById("res-investido").innerText = `R$ ${investido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById("res-juros").innerText = `R$ ${juros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
 
-        async function realizarAcesso(event) {
-            event.preventDefault();
-            const email = document.getElementById("input-email").value.trim();
-            const senha = document.getElementById("input-senha").value;
-            const statusDiv = document.getElementById("mensagem-status");
-            const btnSubmit = document.getElementById("btn-submit");
-
-            statusDiv.classList.add("hidden");
-            btnSubmit.disabled = true;
-            btnSubmit.innerText = "Aguarde...";
-
-            try {
-                if (modoCadastro) {
-                    const { data, error } = await db.auth.signUp({ email, senha });
-                    if (error) throw error;
-                    
-                    const { error: loginError } = await db.auth.signInWithPassword({ email, senha });
-                    if (loginError) throw loginError;
-
-                    window.location.href = "/dashboard.html";
-                } else {
-                    const { data, error } = await db.auth.signInWithPassword({ email, senha });
-                    if (error) throw error;
-
-                    window.location.href = "/dashboard.html";
-                }
-            } catch (err) {
-                statusDiv.className = "bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs p-3 rounded-lg text-center block";
-                statusDiv.innerText = "Erro: " + (err.message || "Credenciais inválidas.");
-                btnSubmit.innerText = modoCadastro ? "Criar Conta" : "Entrar";
-                btnSubmit.disabled = false;
-            }
-        }
+        // Executa cálculo inicial ao carregar
+        document.addEventListener("DOMContentLoaded", calcularJurosCompostos);
     </script>
 </body>
 </html>

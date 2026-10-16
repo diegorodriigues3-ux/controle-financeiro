@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceiraMente - Entrar ou Criar Conta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SDK do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-purple-500 selection:text-white">
+
+    <!-- Cabeçalho -->
+    <header class="p-4 border-b border-slate-800">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <a href="index.html" class="flex items-center space-x-3 text-decoration-none">
+                <span class="text-3xl">🧠</span>
+                <span class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</span>
+            </a>
+            <a href="index.html" class="text-sm text-slate-400 hover:text-white transition flex items-center space-x-1">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Voltar ao Início</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Formulário de Login / Cadastro -->
+    <main class="flex-grow flex items-center justify-center px-4 py-10">
+        <div class="bg-slate-800/90 border border-slate-700 p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-6">
+            
+            <div class="text-center space-y-2">
+                <h1 id="titulo-auth" class="text-2xl font-bold text-white">Acesse sua Conta</h1>
+                <p id="sub-auth" class="text-xs text-slate-400">Entre com seu e-mail e senha ou crie sua conta agora</p>
+            </div>
+
+            <!-- Botão de Login com Google -->
+            <button type="button" onclick="loginComGoogle()" class="w-full bg-slate-900 hover:bg-slate-950 text-slate-200 font-medium py-3 px-4 rounded-xl border border-slate-700 transition flex items-center justify-center space-x-3 cursor-pointer shadow-sm">
+                <i class="fa-brands fa-google text-red-400"></i>
+                <span>Continuar com o Google</span>
+            </button>
+
+            <div class="flex items-center my-4">
+                <div class="flex-grow border-t border-slate-700"></div>
+                <span class="px-3 text-xs text-slate-500 uppercase">ou com e-mail</span>
+                <div class="flex-grow border-t border-slate-700"></div>
+            </div>
+
+            <!-- Formulário de E-mail e Senha -->
+            <form id="form-auth" onsubmit="realizarAutenticacao(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">E-mail</label>
+                    <input type="email" id="email" required placeholder="seu@email.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-purple-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Senha</label>
+                    <input type="password" id="senha" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-purple-500 focus:outline-none">
+                </div>
+
+                <div id="mensagem-erro" class="text-xs text-red-400 text-center hidden"></div>
+
+                <button type="submit" id="btn-submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold p-3 rounded-xl transition cursor-pointer shadow-lg">
+                    Entrar na Conta
+                </button>
+            </form>
+
+            <!-- Alternar entre Login e Criar Conta -->
+            <div class="text-center pt-2">
+                <p class="text-xs text-slate-400">
+                    <span id="texto-alternar">Não tem uma conta?</span> 
+                    <button type="button" onclick="alternarModo()" id="link-alternar" class="text-purple-400 font-semibold hover:underline ml-1 cursor-pointer">Criar conta grátis</button>
+                </p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="p-4 text-center text-xs text-slate-500 border-t border-slate-800">
+        <p>© 2026 FinanceiraMente. Todos os direitos reservados.</p>
+    </footer>
+
+    <!-- Conexão e Lógica com o Supabase -->
+    <script>
+        const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_hoyDXLDegE51neY2E7e-FA_m8owsoDe";
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let ehCadastro = false;
+
+        function alternarModo() {
+            ehCadastro = !ehCadastro;
+            const titulo = document.getElementById("titulo-auth");
+            const sub = document.getElementById("sub-auth");
+            const btn = document.getElementById("btn-submit");
+            const txtAlt = document.getElementById("texto-alternar");
+            const linkAlt = document.getElementById("link-alternar");
+            const erroDiv = document.getElementById("mensagem-erro");
+
+            erroDiv.classList.add("hidden");
+
+            if (ehCadastro) {
+                titulo.innerText = "Crie sua Conta";
+                sub.innerText = "Preencha os dados abaixo para começar";
+                btn.innerText = "Cadastrar";
+                txtAlt.innerText = "Já tem uma conta?";
+                linkAlt.innerText = "Fazer login";
+            } else {
+                titulo.innerText = "Acesse sua Conta";
+                sub.innerText = "Entre com seu e-mail e senha ou crie sua conta agora";
+                btn.innerText = "Entrar na Conta";
+                txtAlt.innerText = "Não tem uma conta?";
+                linkAlt.innerText = "Criar conta grátis";
+            }
+        }
+
+        async function realizarAutenticacao(event) {
+            event.preventDefault();
+            const email = document.getElementById("email").value;
+            const senha = document.getElementById("senha").value;
+            const erroDiv = document.getElementById("mensagem-erro");
+            const btn = document.getElementById("btn-submit");
+
+            erroDiv.classList.add("hidden");
+            btn.disabled = true;
+            btn.innerText = "Processando...";
+
+            try {
+                if (ehCadastro) {
+                    const { data, error } = await db.auth.signUp({ email, senha });
+                    if (error) throw error;
+                    alert("Conta criada com sucesso!");
+                    alternarModo();
+                } else {
+                    const { data, error } = await db.auth.signInWithPassword({ email, senha });
+                    if (error) throw error;
+                    window.location.href = "dashboard.html";
+                }
+            } catch (err) {
+                erroDiv.innerText = err.message || "Ocorreu um erro ao tentar entrar.";
+                erroDiv.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = ehCadastro ? "Cadastrar" : "Entrar na Conta";
+            }
+        }
+
+       async function loginComGoogle() {
+    try {
+        const { data, error } = await db.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin + '/dashboard.html'
+            }
+        });
+        if (error) throw error;
+    } catch (err) {
+        alert("Erro ao conectar com o Google: " + err.message);
+    }
+}
+    </script>
+</body>
+</html>
