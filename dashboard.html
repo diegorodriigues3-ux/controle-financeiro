@@ -13,11 +13,8 @@
         const SUPABASE_KEY = "sb_publishable_hoyDXLDeGE51ney2E7e-FA_m8owsM0";
         const supabaseCheck = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Bloqueio imediato caso não haja sessão ativa
         supabaseCheck.auth.getSession().then(({ data: { session } }) => {
             if (!session || !session.user) {
-                localStorage.clear();
-                sessionStorage.clear();
                 window.location.href = "/index.html";
             }
         });
@@ -192,19 +189,15 @@
 
         const LIMITE_LANCAMENTOS_GRATIS = 20;
 
-        document.addEventListener("DOMContentLoaded", async () => {
-            document.getElementById("input-data").valueAsDate = new Date();
-            alternarCamposFormulario();
-            atualizarDisplayMesAno();
-            await verificarAutenticacao();
-        });
+        document.getElementById("input-data").valueAsDate = new Date();
+        alternarCamposFormulario();
+        atualizarDisplayMesAno();
+        verificarAutenticacao();
 
         async function verificarAutenticacao() {
-            const { data: { session }, error } = await db.auth.getSession();
+            const { data: { session } } = await db.auth.getSession();
             
             if (!session || !session.user) {
-                localStorage.clear();
-                sessionStorage.clear();
                 window.location.href = "/index.html";
                 return;
             }
@@ -254,7 +247,7 @@
         function atualizarDisplayMesAno() {
             const dataAux = new Date(anoAtual, mesAtual, 1);
             const nomeMes = dataAux.toLocaleString("pt-BR", { month: "long" });
-            document.getElementById("display-mes-ano").innerText = `${nomeMes} de${anoAtual}`;
+            document.getElementById("display-mes-ano").innerText = `${nomeMes} de ${anoAtual}`;
         }
 
         function alternarCamposFormulario() {
@@ -408,4 +401,97 @@
                             ${ehReceita ? '+' : '-'} R$ ${item.valor.toFixed(2).replace('.', ',')}
                         </td>
                         <td class="p-2.5 text-center">
-                            <button type="button" onclick="deletarLancamento('${item.id}')
+                            <button type="button" onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition cursor-pointer" title="Excluir">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    tabela.appendChild(tr);
+                });
+            }
+
+            const saldo = totalReceitas - totalDespesas;
+            document.getElementById("total-receitas").innerText = `R$ ${totalReceitas.toFixed(2).replace('.', ',')}`;
+            document.getElementById("total-despesas").innerText = `R$ ${totalDespesas.toFixed(2).replace('.', ',')}`;
+            document.getElementById("total-saldo").innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
+
+            atualizarGraficoCategorias(categoriasGastos);
+        }
+
+        function atualizarGraficoCategorias(dadosCategorias) {
+            const canvas = document.getElementById("grafico-categorias");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const labels = Object.keys(dadosCategorias);
+            const valores = Object.values(dadosCategorias);
+
+            if (instanciaGrafico) {
+                instanciaGrafico.destroy();
+            }
+
+            if (labels.length === 0) {
+                instanciaGrafico = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Sem despesas'],
+                        datasets: [{ data: [1], backgroundColor: ['#334155'] }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+                return;
+            }
+
+            instanciaGrafico = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        async function deletarLancamento(id) {
+            if (!confirm("Tem certeza que deseja excluir este lançamento?")) return;
+            const { error } = await db.from("gastos").delete().eq("id", id);
+            if (error) alert("Erro ao excluir: " + error.message);
+            else await carregarDadosDoMes();
+        }
+
+        function abrirModalUpgrade() {
+            document.getElementById("modal-upgrade").classList.remove("hidden");
+        }
+
+        function fecharModalUpgrade() {
+            document.getElementById("modal-upgrade").classList.add("hidden");
+        }
+
+        function solicitarUpgrade() {
+            alert("Redirecionando para a página de pagamento...");
+        }
+
+        async function fazerLogout() {
+    try {
+        await db.auth.signOut();
+    } catch (e) {
+        console.error("Erro ao deslogar:", e);
+    }
+    // Limpa qualquer cache e armazenamento local da sessão
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Força o navegador a ir para a tela de login limpando o histórico
+    window.location.replace("/index.html");
+}
+    </script>
+</body>
+</html>

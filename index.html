@@ -7,19 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_hoyDXLDeGE51ney2E7e-FA_m8owsM0";
-        const supabaseCheck = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // Se o usuário JÁ estiver logado no navegador dele, vai para o dashboard.
-        // Se NÃO estiver logado, permanece na tela de login.
-        supabaseCheck.auth.getSession().then(({ data: { session } }) => {
-            if (session && session.user) {
-                window.location.href = "/dashboard.html";
-            }
-        });
-    </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
     <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
@@ -54,7 +41,10 @@
     </div>
 
     <script>
+        const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_hoyDXLDeGE51ney2E7e-FA_m8owsM0";
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let modoCadastro = false;
 
         function alternarModo() {
@@ -92,15 +82,10 @@
                     const { data, error } = await db.auth.signUp({ email, senha });
                     if (error) throw error;
                     
-                    // Como a confirmação de e-mail está desligada no Supabase, loga direto
-                    if (data.session) {
-                        window.location.href = "/dashboard.html";
-                    } else {
-                        // Se por algum motivo o Supabase pedir confirmação:
-                        const { data: loginData, error: loginError } = await db.auth.signInWithPassword({ email, senha });
-                        if (loginError) throw loginError;
-                        window.location.href = "/dashboard.html";
-                    }
+                    const { error: loginError } = await db.auth.signInWithPassword({ email, senha });
+                    if (loginError) throw loginError;
+
+                    window.location.href = "/dashboard.html";
                 } else {
                     const { data, error } = await db.auth.signInWithPassword({ email, senha });
                     if (error) throw error;
