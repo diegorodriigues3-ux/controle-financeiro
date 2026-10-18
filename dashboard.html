@@ -30,7 +30,7 @@
                 <span id="badge-plano" class="bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30">Plano Gratuito</span>
             </div>
             <div class="flex items-center space-x-3">
-                <button id="btn-upgrade" onclick="abrirModalUpgrade()" class="hidden sm:inline-flex items-center text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-lg hover:bg-amber-500/30 transition cursor-pointer">
+                <button id="btn-upgrade" onclick="clicarBotaoPro()" class="inline-flex items-center text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-lg hover:bg-amber-500/30 transition cursor-pointer">
                     <i class="fa-solid font-bold fa-crown mr-1.5"></i> Seja PRO
                 </button>
                 <button onclick="fazerLogout()" class="text-xs text-slate-400 hover:text-white bg-slate-700/50 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition cursor-pointer">
@@ -45,7 +45,7 @@
             <button type="button" onclick="mudarMes(-1)" class="p-3 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition cursor-pointer"><i class="fa-solid fa-chevron-left"></i></button>
             <div class="text-center">
                 <h2 id="display-mes-ano" class="text-lg font-bold text-white capitalize">Carregando...</h2>
-                <span id="status-limite-mensal" class="text-xs text-slate-400">Lançamentos no mês: 0/20</span>
+                <span id="status-limite-mensal" class="text-xs text-slate-400">Lançamentos no mês: 0/30</span>
             </div>
             <button type="button" onclick="mudarMes(1)" class="p-3 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition cursor-pointer"><i class="fa-solid fa-chevron-right"></i></button>
         </section>
@@ -120,14 +120,59 @@
                             <option value="4">4x sem juros</option>
                             <option value="5">5x sem juros</option>
                             <option value="6">6x sem juros</option>
+                            <option value="7">7x sem juros</option>
+                            <option value="8">8x sem juros</option>
+                            <option value="9">9x sem juros</option>
                             <option value="10">10x sem juros</option>
+                            <option value="11">11x sem juros</option>
                             <option value="12">12x sem juros</option>
                         </select>
                     </div>
-                    <button type="button" onclick="salvarLancamento()" id="btn-salvar" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 rounded-lg transition flex justify-center items-center sm:col-span-3 md:col-span-1 cursor-pointer">
-                        <i class="fa-solid fa-plus mr-2"></i> Adicionar
-                    </button>
+
+                    <div class="sm:col-span-3 md:col-span-1 flex flex-col space-y-2">
+                        <label id="container-recorrente" class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer select-none">
+                            <input type="checkbox" id="input-recorrente" class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-purple-600 focus:ring-purple-500">
+                            <span>🔄 Gasto/Receita Fixo (12 meses)</span>
+                        </label>
+                        <button type="button" onclick="salvarLancamento()" id="btn-salvar" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 rounded-lg transition flex justify-center items-center cursor-pointer">
+                            <i class="fa-solid fa-plus mr-2"></i> Adicionar
+                        </button>
+                    </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO DE METAS E LIMITES POR CATEGORIA -->
+        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <h3 class="text-base font-semibold text-white flex items-center">
+                    <i class="fa-solid fa-bullseye text-pink-400 mr-2"></i> Teto de Gastos e Metas por Categoria
+                </h3>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 items-end">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Categoria</label>
+                    <select id="meta-categoria" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-purple-500 focus:outline-none">
+                        <option value="Mercado">🛒 Mercado / Alimentação</option>
+                        <option value="Moradia">🏠 Moradia / Contas</option>
+                        <option value="Transporte">🚗 Transporte / Combustível</option>
+                        <option value="Lazer">🍕 Lazer / Restaurantes</option>
+                        <option value="Saúde">💊 Saúde / Farmácia</option>
+                        <option value="Outros">📦 Outros</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Limite Máximo Mensal (R$)</label>
+                    <input type="number" step="0.01" id="meta-valor" placeholder="Ex: 500,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:border-purple-500 focus:outline-none">
+                </div>
+                <button type="button" onclick="salvarMeta()" class="bg-pink-600 hover:bg-pink-500 text-white font-medium p-2 text-xs rounded-lg transition flex justify-center items-center cursor-pointer">
+                    <i class="fa-solid fa-floppy-disk mr-1.5"></i> Definir Meta
+                </button>
+            </div>
+
+            <div id="container-lista-metas" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p class="text-xs text-slate-500 col-span-2">Nenhuma meta configurada ainda. Defina um limite acima para acompanhar seus gastos em tempo real.</p>
             </div>
         </section>
 
@@ -158,24 +203,118 @@
                 </div>
             </div>
         </section>
+
+        <!-- SEÇÃO: MEUS INVESTIMENTOS E SIMULAÇÃO DE FUTURO -->
+        <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-5 shadow-lg space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-700/60 pb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center">
+                        <i class="fa-solid fa-chart-line text-emerald-400 mr-2.5"></i> Meus Investimentos <span class="ml-2 text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">Exclusivo PRO</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Gerencie seus aportes e acompanhe o crescimento do seu patrimônio (à parte do orçamento mensal).</p>
+                </div>
+                <div class="bg-emerald-950/50 border border-emerald-500/40 px-4 py-2 rounded-xl text-right w-full sm:w-auto">
+                    <span class="text-[11px] font-medium text-emerald-400 block uppercase">Patrimônio Investido</span>
+                    <span id="total-patrimonio" class="text-xl font-extrabold text-emerald-300">R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- Formulário de Operação (Aporte / Resgate) -->
+            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Nova Movimentação</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Ação</label>
+                        <select id="inv-acao" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:border-purple-500 focus:outline-none">
+                            <option value="aporte">➕ Investir / Aportar</option>
+                            <option value="resgate">➖ Retirar / Resgatar</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Tipo de Investimento</label>
+                        <select id="inv-tipo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:border-purple-500 focus:outline-none">
+                            <option value="CDB / CDI">🛡️ CDB / CDI</option>
+                            <option value="Ações">📈 Ações</option>
+                            <option value="Fundos Imobiliários / FIIs">🏢 Fundos Imobiliários / FIIs</option>
+                            <option value="Tesouro Direto / Renda Fixa">🏛️ Tesouro Direto / Renda Fixa</option>
+                            <option value="Outros">💼 Outros</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor (R$)</label>
+                        <input type="number" step="0.01" id="inv-valor" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                    <button type="button" onclick="salvarInvestimento()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium p-2.5 text-xs rounded-lg transition flex justify-center items-center cursor-pointer">
+                        <i class="fa-solid fa-check mr-1.5"></i> Confirmar Movimentação
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exibição dos saldos por tipo -->
+            <div id="container-lista-investimentos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <p class="text-xs text-slate-500 col-span-3">Nenhum investimento registrado ainda.</p>
+            </div>
+
+            <!-- SIMULAÇÃO DE FUTURO -->
+            <div class="bg-gradient-to-r from-slate-900 via-purple-950/40 to-slate-900 border border-purple-500/30 rounded-xl p-4 space-y-3">
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg">🔮</span>
+                    <h4 class="text-sm font-bold text-white">Simulador de Projeção de Futuro</h4>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Com base no seu histórico real de aportes, calculamos a sua média mensal de investimentos para simular o crescimento acumulado nos próximos meses.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-1">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Período de Simulação (Meses)</label>
+                        <input type="number" id="simulacao-meses" value="3" min="1" max="120" placeholder="Ex: 3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:border-purple-500 focus:outline-none">
+                    </div>
+                    <button type="button" onclick="calcularSimulacao()" class="bg-purple-600 hover:bg-purple-500 text-white font-medium p-2.5 text-xs rounded-lg transition flex justify-center items-center cursor-pointer">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> Simular Futuro
+                    </button>
+                    <div id="box-resultado-simulacao" class="bg-slate-900/90 border border-purple-500/40 p-2.5 rounded-lg text-center">
+                        <span class="text-[10px] text-slate-400 uppercase font-medium block">Projeção estimada</span>
+                        <span id="valor-simulacao-resultado" class="text-sm font-bold text-purple-300">R$ 0,00</span>
+                    </div>
+                </div>
+                <p id="detalhe-simulacao" class="text-[11px] text-slate-400 italic mt-1"></p>
+            </div>
+        </section>
     </main>
 
+    <!-- MODAL DE CHECKOUT / OBTENÇÃO DO PRO -->
     <div id="modal-upgrade" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4">
         <div class="bg-slate-800 border border-purple-500/40 rounded-2xl p-6 max-w-md w-full space-y-4">
             <div class="text-center space-y-2">
                 <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-full flex justify-center items-center mx-auto text-2xl">👑</div>
                 <h3 class="text-xl font-bold text-white">Desbloqueie o FinanceiraMente PRO</h3>
-                <p class="text-xs text-slate-400">Tenha acesso ilimitado e controle tudo diretamente no seu WhatsApp!</p>
+                <p class="text-xs text-slate-400">Tenha acesso ilimitado e controle tudo sem barreiras!</p>
             </div>
             <ul class="text-sm space-y-2.5 text-slate-300 bg-slate-900/60 p-4 rounded-xl border border-slate-700/50">
                 <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Lançamentos mensais ilimitados</li>
-                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Bot de WhatsApp exclusivo para lançamentos rápidos</li>
-                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Relatórios avançados e exportação de PDF</li>
+                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Metas de gastos para todas as categorias</li>
+                <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Módulo completo de Investimentos e Simulação</li>
             </ul>
             <div class="pt-2 flex flex-col space-y-2">
-                <button onclick="solicitarUpgrade()" class="w-full bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition cursor-pointer">Assinar Agora por R$ 19,90/mês</button>
+                <button onclick="solicitarUpgrade()" class="w-full bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition cursor-pointer">Assinar Agora por R$ 9,99/mês</button>
                 <button onclick="fecharModalUpgrade()" class="w-full text-xs text-slate-400 hover:text-white py-2 cursor-pointer">Agora não</button>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL INFORMATIVO PARA QUEM JÁ É PRO -->
+    <div id="modal-ja-pro" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+        <div class="bg-slate-800 border border-amber-500/40 rounded-2xl p-6 max-w-md w-full space-y-4 text-center">
+            <div class="w-14 h-14 bg-amber-500/20 text-amber-300 rounded-full flex justify-center items-center mx-auto text-3xl">👑</div>
+            <h3 class="text-xl font-bold text-white">Você já é PRO!</h3>
+            <p class="text-sm text-slate-300 leading-relaxed">Sua conta tem acesso total e ilimitado a todos os recursos premium do FinanceiraMente!</p>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700 text-xs text-amber-300 space-y-1">
+                <p>✔ Lançamentos ilimitados</p>
+                <p>✔ Metas ilimitadas por categoria</p>
+                <p>✔ Módulo de Investimentos liberado</p>
+            </div>
+            <button onclick="fecharModalJaPro()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl transition cursor-pointer">Aproveitar Benefícios</button>
         </div>
     </div>
 
@@ -185,8 +324,11 @@
         let anoAtual = new Date().getFullYear();
         let perfilUsuario = { plano: 'gratuito' };
         let instanciaGrafico = null;
+        let metasUsuario = [];
+        let investimentosUsuario = [];
+        let historicoInvestimentos = [];
 
-        const LIMITE_LANCAMENTOS_GRATIS = 20;
+        const LIMITE_LANCAMENTOS_GRATIS = 30;
 
         document.getElementById("input-data").valueAsDate = new Date();
         alternarCamposFormulario();
@@ -212,22 +354,33 @@
             if (profile) perfilUsuario = profile;
             
             atualizarInterfacePlano();
+            await carregarMetas();
+            await carregarInvestimentos();
             await carregarDadosDoMes();
         }
 
         function atualizarInterfacePlano() {
             const badgePlano = document.getElementById("badge-plano");
-            const btnUpgrade = document.getElementById("btn-upgrade");
 
             if (perfilUsuario.plano === "pro") {
                 badgePlano.innerText = "Plano PRO 👑";
                 badgePlano.className = "bg-amber-900/60 text-amber-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-amber-500/30";
-                if (btnUpgrade) btnUpgrade.classList.add("hidden");
             } else {
                 badgePlano.innerText = "Plano Gratuito";
                 badgePlano.className = "bg-purple-900/60 text-purple-300 text-xs px-2.5 py-1 rounded-full font-semibold border border-purple-500/30";
-                if (btnUpgrade) btnUpgrade.classList.remove("hidden");
             }
+        }
+
+        function clicarBotaoPro() {
+            if (perfilUsuario.plano === "pro") {
+                document.getElementById("modal-ja-pro").classList.remove("hidden");
+            } else {
+                abrirModalUpgrade();
+            }
+        }
+
+        function fecharModalJaPro() {
+            document.getElementById("modal-ja-pro").classList.add("hidden");
         }
 
         function mudarMes(delta) {
@@ -253,11 +406,15 @@
             const tipo = document.getElementById("input-tipo").value;
             const pagamento = document.getElementById("input-pagamento").value;
             const containerParcelas = document.getElementById("container-parcelas");
+            const containerRecorrente = document.getElementById("container-recorrente");
 
             if (tipo === "despesa" && pagamento === "Cartão de Crédito") {
                 containerParcelas.style.display = "block";
+                containerRecorrente.style.display = "none";
+                document.getElementById("input-recorrente").checked = false;
             } else {
                 containerParcelas.style.display = "none";
+                containerRecorrente.style.display = "flex";
                 document.getElementById("input-parcelas").value = "1";
             }
         }
@@ -277,6 +434,7 @@
             const dataBaseStr = document.getElementById("input-data").value;
             const pagamento = document.getElementById("input-pagamento").value;
             const categoria = document.getElementById("input-categoria").value;
+            const ehRecorrente = document.getElementById("input-recorrente").checked;
 
             if (!descricao || !valorTotalStr || !dataBaseStr) {
                 alert("Por favor, preencha a descrição, o valor e a data do lançamento.");
@@ -285,31 +443,38 @@
 
             const valorTotal = parseFloat(valorTotalStr);
             const parcelas = (tipo === "despesa" && pagamento === "Cartão de Crédito") ? parseInt(document.getElementById("input-parcelas").value) : 1;
+            const repeticoes = ehRecorrente ? 12 : parcelas;
 
             if (perfilUsuario.plano !== "pro") {
                 const totalLancamentosMes = await contarLancamentosMesAtual();
-                if (totalLancamentosMes + parcelas > LIMITE_LANCAMENTOS_GRATIS) {
+                if (totalLancamentosMes + repeticoes > LIMITE_LANCAMENTOS_GRATIS) {
                     abrirModalUpgrade();
-                    alert(`Limite do plano gratuito atingido (${LIMITE_LANCAMENTOS_GRATIS} lançamentos/mês).`);
+                    alert(`O plano gratuito é limitado a ${LIMITE_LANCAMENTOS_GRATIS} lançamentos/mês. Seja PRO para ter lançamentos ilimitados!`);
                     return;
                 }
             }
 
-            const valorParcela = valorTotal / parcelas;
+            const valorParcela = ehRecorrente ? valorTotal : (valorTotal / parcelas);
             const novosRegistros = [];
 
-            for (let i = 0; i < parcelas; i++) {
+            for (let i = 0; i < repeticoes; i++) {
                 let dataParcela = new Date(dataBaseStr + "T00:00:00");
                 dataParcela.setMonth(dataParcela.getMonth() + i);
+
+                let descFormatada = descricao;
+                if (!ehRecorrente && parcelas > 1) {
+                    descFormatada = `${descricao} (${i + 1}/${parcelas})`;
+                }
 
                 novosRegistros.push({
                     user_id: usuarioAtual.id,
                     tipo: tipo,
-                    descricao: parcelas > 1 ? `${descricao} (${i + 1}/${parcelas})` : descricao,
+                    descricao: descFormatada,
                     valor: parseFloat(valorParcela.toFixed(2)),
                     data: dataParcela.toISOString().split("T")[0],
                     forma_pagamento: pagamento,
-                    categoria: categoria
+                    categoria: categoria,
+                    recorrente: ehRecorrente
                 });
             }
 
@@ -320,10 +485,200 @@
             } else {
                 document.getElementById("input-descricao").value = "";
                 document.getElementById("input-valor").value = "";
+                document.getElementById("input-recorrente").checked = false;
                 document.getElementById("input-data").valueAsDate = new Date();
                 alternarCamposFormulario();
                 await carregarDadosDoMes();
             }
+        }
+
+        async function carregarMetas() {
+            if (!usuarioAtual) return;
+            const { data, error } = await db
+                .from("metas")
+                .select("*")
+                .eq("user_id", usuarioAtual.id);
+
+            if (!error && data) {
+                metasUsuario = data;
+            }
+        }
+
+        async function salvarMeta() {
+            if (!usuarioAtual) return;
+
+            if (perfilUsuario.plano !== "pro" && metasUsuario.length >= 1) {
+                abrirModalUpgrade();
+                alert("No plano gratuito você só pode definir 1 meta por vez. Seja PRO para definir metas em todas as categorias!");
+                return;
+            }
+
+            const categoria = document.getElementById("meta-categoria").value;
+            const valorStr = document.getElementById("meta-valor").value;
+
+            if (!valorStr || parseFloat(valorStr) <= 0) {
+                alert("Por favor, informe um valor válido para a meta.");
+                return;
+            }
+
+            const limiteValor = parseFloat(valorStr);
+
+            const { error } = await db
+                .from("metas")
+                .upsert({ user_id: usuarioAtual.id, categoria: categoria, limite_valor: limiteValor }, { onConflict: "user_id,categoria" });
+
+            if (error) {
+                alert("Erro ao salvar meta: " + error.message);
+            } else {
+                document.getElementById("meta-valor").value = "";
+                await carregarMetas();
+                await carregarDadosDoMes();
+            }
+        }
+
+        async function deletarMeta(categoria) {
+            if (!confirm(`Remover o limite definido para ${categoria}?`)) return;
+            const { error } = await db
+                .from("metas")
+                .delete()
+                .eq("user_id", usuarioAtual.id)
+                .eq("categoria", categoria);
+
+            if (!error) {
+                await carregarMetas();
+                await carregarDadosDoMes();
+            }
+        }
+
+        /* LOGICA DE INVESTIMENTOS */
+        async function carregarInvestimentos() {
+            if (!usuarioAtual) return;
+
+            const { data: invData } = await db
+                .from("investimentos")
+                .select("*")
+                .eq("user_id", usuarioAtual.id);
+
+            if (invData) investimentosUsuario = invData;
+
+            const { data: histData } = await db
+                .from("historico_investimentos")
+                .select("*")
+                .eq("user_id", usuarioAtual.id);
+
+            if (histData) historicoInvestimentos = histData;
+
+            renderizarInvestimentos();
+        }
+
+        async function salvarInvestimento() {
+            if (!usuarioAtual) return;
+
+            if (perfilUsuario.plano !== "pro") {
+                abrirModalUpgrade();
+                alert("O módulo de Investimentos é um recurso exclusivo do Plano PRO!");
+                return;
+            }
+
+            const acao = document.getElementById("inv-acao").value;
+            const tipo = document.getElementById("inv-tipo").value;
+            const valorStr = document.getElementById("inv-valor").value;
+
+            if (!valorStr || parseFloat(valorStr) <= 0) {
+                alert("Informe um valor válido para a movimentação.");
+                return;
+            }
+
+            let valor = parseFloat(valorStr);
+            const atual = investimentosUsuario.find(i => i.tipo === tipo);
+            const saldoAtual = atual ? parseFloat(atual.saldo) : 0;
+
+            if (acao === "resgate") {
+                if (valor > saldoAtual) {
+                    alert(`Você possui apenas R$ ${saldoAtual.toFixed(2)} acumulados em ${tipo}.`);
+                    return;
+                }
+                valor = -valor;
+            }
+
+            const novoSaldo = Math.max(0, saldoAtual + valor);
+
+            const { error: errInv } = await db
+                .from("investimentos")
+                .upsert({ user_id: usuarioAtual.id, tipo: tipo, saldo: novoSaldo }, { onConflict: "user_id,tipo" });
+
+            if (errInv) {
+                alert("Erro ao atualizar investimento: " + errInv.message);
+                return;
+            }
+
+            await db.from("historico_investimentos").insert({
+                user_id: usuarioAtual.id,
+                tipo: tipo,
+                valor: valor,
+                data: new Date().toISOString().split("T")[0]
+            });
+
+            document.getElementById("inv-valor").value = "";
+            await carregarInvestimentos();
+        }
+
+        function renderizarInvestimentos() {
+            const container = document.getElementById("container-lista-investimentos");
+            container.innerHTML = "";
+
+            let patrimonioTotal = 0;
+
+            if (!investimentosUsuario || investimentosUsuario.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 col-span-3">Nenhum investimento registrado ainda.</p>`;
+            } else {
+                investimentosUsuario.forEach(inv => {
+                    const saldo = parseFloat(inv.saldo);
+                    patrimonioTotal += saldo;
+
+                    if (saldo > 0) {
+                        const card = document.createElement("div");
+                        card.className = "bg-slate-900/80 border border-slate-700/60 rounded-xl p-3.5 flex justify-between items-center";
+                        card.innerHTML = `
+                            <div>
+                                <span class="text-xs font-bold text-white block">${inv.tipo}</span>
+                                <span class="text-[11px] text-slate-400">Saldo acumulado</span>
+                            </div>
+                            <span class="text-sm font-extrabold text-emerald-400">R$ ${saldo.toFixed(2).replace('.', ',')}</span>
+                        `;
+                        container.appendChild(card);
+                    }
+                });
+
+                if (container.children.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-slate-500 col-span-3">Seus investimentos estão zerados no momento.</p>`;
+                }
+            }
+
+            document.getElementById("total-patrimonio").innerText = `R$ ${patrimonioTotal.toFixed(2).replace('.', ',')}`;
+            calcularSimulacao();
+        }
+
+        function calcularSimulacao() {
+            const mesesStr = document.getElementById("simulacao-meses").value;
+            const meses = parseInt(mesesStr) || 3;
+
+            let patrimonioAtual = 0;
+            investimentosUsuario.forEach(i => patrimonioAtual += parseFloat(i.saldo));
+
+            let aporteMedioMensal = 0;
+
+            if (historicoInvestimentos && historicoInvestimentos.length > 0) {
+                const mesesUnicos = new Set(historicoInvestimentos.map(h => h.data.substring(0, 7)));
+                const totalAportado = historicoInvestimentos.reduce((acc, curr) => acc + parseFloat(curr.valor), 0);
+                const qtdMeses = Math.max(1, mesesUnicos.size);
+                aporteMedioMensal = Math.max(0, totalAportado / qtdMeses);
+            }
+
+            const projecaoTotal = patrimonioAtual + (aporteMedioMensal * meses);
+
+            document.getElementById("valor-simulacao-resultado").innerText = `R$ ${projecaoTotal.toFixed(2).replace('.', ',')}`;
+            document.getElementById("detalhe-simulacao").innerText = `Baseado na sua média atual de R$ ${aporteMedioMensal.toFixed(2).replace('.', ',')}/mês investidos.`;
         }
 
         async function contarLancamentosMesAtual() {
@@ -389,12 +744,13 @@
 
                     const dataFormatada = new Date(item.data + "T00:00:00").toLocaleDateString("pt-BR");
                     const ehReceita = item.tipo === "receita";
+                    const iconeRecorrente = item.recorrente ? '🔄 ' : '';
 
                     const tr = document.createElement("tr");
                     tr.className = "hover:bg-slate-700/30 transition";
                     tr.innerHTML = `
                         <td class="p-2.5 text-slate-400 text-xs">${dataFormatada}</td>
-                        <td class="p-2.5 font-medium text-white">${item.descricao}</td>
+                        <td class="p-2.5 font-medium text-white">${iconeRecorrente}${item.descricao}</td>
                         <td class="p-2.5 text-xs text-slate-300">${item.forma_pagamento || 'Pix'}</td>
                         <td class="p-2.5 text-right font-bold ${ehReceita ? 'text-emerald-400' : 'text-rose-400'}">
                             ${ehReceita ? '+' : '-'} R$ ${item.valor.toFixed(2).replace('.', ',')}
@@ -415,6 +771,57 @@
             document.getElementById("total-saldo").innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
 
             atualizarGraficoCategorias(categoriasGastos);
+            renderizarAvisosMetas(categoriasGastos);
+        }
+
+        function renderizarAvisosMetas(gastosPorCategoria) {
+            const container = document.getElementById("container-lista-metas");
+            container.innerHTML = "";
+
+            if (!metasUsuario || metasUsuario.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 col-span-2">Nenhuma meta configurada ainda. Defina um limite acima para acompanhar seus gastos em tempo real.</p>`;
+                return;
+            }
+
+            metasUsuario.forEach((meta) => {
+                const gastoAtual = gastosPorCategoria[meta.categoria] || 0;
+                const limite = meta.limite_valor;
+                const restante = limite - gastoAtual;
+                const porcentagem = Math.min(Math.round((gastoAtual / limite) * 100), 100);
+
+                let corBarra = "bg-emerald-500";
+                let textoAviso = `Você ainda tem <b>R$ ${restante.toFixed(2).replace('.', ',')}</b> até atingir a meta.`;
+                let corBorda = "border-slate-700/60";
+
+                if (restante < 0) {
+                    corBarra = "bg-rose-500";
+                    textoAviso = `⚠️ <b>Atenção:</b> Meta ultrapassada em <b>R$ ${Math.abs(restante).toFixed(2).replace('.', ',')}</b>!`;
+                    corBorda = "border-rose-500/50";
+                } else if (porcentagem >= 80) {
+                    corBarra = "bg-amber-500";
+                    textoAviso = `⚠️ <b>Atenção:</b> Você atingiu ${porcentagem}% do limite! Restam apenas R$ ${restante.toFixed(2).replace('.', ',')}.`;
+                    corBorda = "border-amber-500/50";
+                }
+
+                const card = document.createElement("div");
+                card.className = `bg-slate-900/80 border ${corBorda} rounded-xl p-3.5 space-y-2 relative`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-white">${meta.categoria}</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-slate-400">R$ ${gastoAtual.toFixed(2).replace('.', ',')} / R$ ${limite.toFixed(2).replace('.', ',')}</span>
+                            <button onclick="deletarMeta('${meta.categoria}')" class="text-slate-500 hover:text-rose-400 text-xs ml-1" title="Excluir Meta">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div class="${corBarra} h-2 rounded-full transition-all duration-500" style="width: ${porcentagem}%"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-300 leading-tight">${textoAviso}</p>
+                `;
+                container.appendChild(card);
+            });
         }
 
         function atualizarGraficoCategorias(dadosCategorias) {
@@ -475,7 +882,8 @@
         }
 
         function solicitarUpgrade() {
-            alert("Redirecionando para a página de pagamento...");
+            // REDIRECIONAMENTO DIRETO PARA O CHECKOUT DE ASSINATURA RECORRENTE DO MERCADO PAGO
+            window.open("https://mpago.la/2Y6RN8A", "_blank");
         }
 
         async function fazerLogout() {
