@@ -407,8 +407,8 @@
             if (paymentBrickController) return; // Evita recriar se já estiver montado
 
             try {
-                // Substitua abaixo pela sua Public Key real do Mercado Pago
-                const mp = new MercadoPago('APP_USR-sua-public-key-aqui', {
+                // Public Key real integrada com sucesso
+                const mp = new MercadoPago('APP_USR-09412529-e26f-4409-85a5-6840004d67f5', {
                     locale: 'pt-BR'
                 });
 
@@ -470,6 +470,7 @@
                 );
             } catch (e) {
                 console.error("Erro ao inicializar o Mercado Pago Brick:", e);
+                alert("Erro ao carregar os campos de pagamento. Verifique sua chave pública do Mercado Pago.");
             }
         }
 
@@ -734,9 +735,8 @@
             const mesesSimulacao = parseInt(document.getElementById("simulacao-meses").value) || 3;
             let patrimonioAtual = investimentosUsuario.reduce((acc, inv) => acc + inv.valor, 0);
 
-            // Média simples de aportes baseada no histórico
             let totalAportes = investimentosUsuario.filter(i => i.valor > 0).reduce((acc, i) => acc + i.valor, 0);
-            let mediaMensalAporte = totalAportes > 0 ? (totalAportes / 3) : 500; // Estimativa padrão se pouco histórico
+            let mediaMensalAporte = totalAportes > 0 ? (totalAportes / 3) : 500;
 
             let projecao = patrimonioAtual + (mediaMensalAporte * mesesSimulacao);
 
