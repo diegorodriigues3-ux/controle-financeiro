@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SDK Oficial do Mercado Pago para o Checkout Transparente (Brick) -->
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
     <script>
         const SUPABASE_URL = "https://ugyrxgpffvrmzomldibk.supabase.co";
         const SUPABASE_KEY = "sb_publishable_hoyDXLDegE51neY2E7e-FA_m8owsoDe";
@@ -296,9 +298,12 @@
                 <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Metas de gastos para todas as categorias</li>
                 <li class="flex items-center"><i class="fa-solid fa-check text-emerald-400 mr-2.5"></i> Módulo completo de Investimentos e Simulação</li>
             </ul>
+
+            <!-- CONTAINER DO CHECKOUT TRANSPARENTE (FORMULÁRIO DO CARTÃO) -->
+            <div id="paymentBrick_container" class="mt-2"></div>
+
             <div class="pt-2 flex flex-col space-y-2">
-                <button onclick="solicitarUpgrade()" class="w-full bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition cursor-pointer">Assinar Agora por R$ 9,99/mês</button>
-                <button onclick="fecharModalUpgrade()" class="w-full text-xs text-slate-400 hover:text-white py-2 cursor-pointer">Agora não</button>
+                <button onclick="fecharModalUpgrade()" class="w-full text-xs text-slate-400 hover:text-white py-2 cursor-pointer">Cancelar / Fechar</button>
             </div>
         </div>
     </div>
@@ -327,6 +332,7 @@
         let metasUsuario = [];
         let investimentosUsuario = [];
         let historicoInvestimentos = [];
+        let paymentBrickController = null;
 
         const LIMITE_LANCAMENTOS_GRATIS = 30;
 
@@ -381,6 +387,90 @@
 
         function fecharModalJaPro() {
             document.getElementById("modal-ja-pro").classList.add("hidden");
+        }
+
+        function abrirModalUpgrade() {
+            document.getElementById("modal-upgrade").classList.remove("hidden");
+            initPaymentBrick();
+        }
+
+        function fecharModalUpgrade() {
+            document.getElementById("modal-upgrade").classList.add("hidden");
+            if (paymentBrickController) {
+                paymentBrickController.unmount();
+                paymentBrickController = null;
+            }
+        }
+
+        // INICIALIZAÇÃO DO CHECKOUT TRANSPARENTE (MERCADO PAGO)
+        async function initPaymentBrick() {
+            if (paymentBrickController) return; // Evita recriar se já estiver montado
+
+            try {
+                // Substitua abaixo pela sua Public Key real do Mercado Pago
+                const mp = new MercadoPago('APP_USR-sua-public-key-aqui', {
+                    locale: 'pt-BR'
+                });
+
+                const bricksBuilder = mp.bricks();
+
+                const settings = {
+                    initialization: {
+                        amount: 9.99, // Valor do plano PRO
+                    },
+                    customization: {
+                        paymentMethods: {
+                            creditCard: "all",
+                        },
+                    },
+                    callbacks: {
+                        onReady: () => {
+                            console.log("Payment Brick carregado com sucesso!");
+                        },
+                        onSubmit: ({ cardFormData }) => {
+                            return new Promise((resolve, reject) => {
+                                // Envia os dados criptografados do cartão para a sua Edge Function no Supabase
+                                fetch("https://ugyrxgpffvrmzomldibk.supabase.co/functions/v1/database-access", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        ...cardFormData,
+                                        user_id: usuarioAtual.id,
+                                        email: usuarioAtual.email
+                                    }),
+                                })
+                                .then((response) => {
+                                    if (!response.ok) throw new Error("Erro ao processar pagamento");
+                                    return response.json();
+                                })
+                                .then((response) => {
+                                    resolve();
+                                    alert("Pagamento aprovado com sucesso! Seu plano PRO foi ativado.");
+                                    fecharModalUpgrade();
+                                    location.reload();
+                                })
+                                .catch((error) => {
+                                    reject();
+                                    alert("Não foi possível processar o pagamento. Verifique os dados informados.");
+                                });
+                            });
+                        },
+                        onError: (error) => {
+                            console.error("Erro no Brick de Pagamento:", error);
+                        },
+                    },
+                };
+
+                paymentBrickController = await bricksBuilder.create(
+                    "payment",
+                    "paymentBrick_container",
+                    settings
+                );
+            } catch (e) {
+                console.error("Erro ao inicializar o Mercado Pago Brick:", e);
+            }
         }
 
         function mudarMes(delta) {
@@ -492,6 +582,20 @@
             }
         }
 
+        async function contarLancamentosMesAtual() {
+            const primeiroDia = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
+            const ultimoDia = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
+
+            const { count, error } = await db
+                .from("gastos")
+                .select("*", { count: 'exact', head: true })
+                .eq("user_id", usuarioAtual.id)
+                .gte("data", primeiroDia)
+                .lte("data", ultimoDia);
+
+            return error ? 0 : count;
+        }
+
         async function carregarMetas() {
             if (!usuarioAtual) return;
             const { data, error } = await db
@@ -501,6 +605,7 @@
 
             if (!error && data) {
                 metasUsuario = data;
+                renderizarMetas();
             }
         }
 
@@ -521,62 +626,43 @@
                 return;
             }
 
-            const limiteValor = parseFloat(valorStr);
+            const valor = parseFloat(valorStr);
+            const metaExistente = metasUsuario.find(m => m.categoria === categoria);
 
-            const { error } = await db
-                .from("metas")
-                .upsert({ user_id: usuarioAtual.id, categoria: categoria, limite_valor: limiteValor }, { onConflict: "user_id,categoria" });
+            let error;
+            if (metaExistente) {
+                const res = await db.from("metas").update({ limite: valor }).eq("id", metaExistente.id);
+                error = res.error;
+            } else {
+                const res = await db.from("metas").insert({ user_id: usuarioAtual.id, categoria, limite: valor });
+                error = res.error;
+            }
 
             if (error) {
                 alert("Erro ao salvar meta: " + error.message);
             } else {
                 document.getElementById("meta-valor").value = "";
                 await carregarMetas();
-                await carregarDadosDoMes();
             }
         }
 
-        async function deletarMeta(categoria) {
-            if (!confirm(`Remover o limite definido para ${categoria}?`)) return;
-            const { error } = await db
-                .from("metas")
-                .delete()
-                .eq("user_id", usuarioAtual.id)
-                .eq("categoria", categoria);
-
-            if (!error) {
-                await carregarMetas();
-                await carregarDadosDoMes();
-            }
-        }
-
-        /* LOGICA DE INVESTIMENTOS */
         async function carregarInvestimentos() {
             if (!usuarioAtual) return;
-
-            const { data: invData } = await db
+            const { data, error } = await db
                 .from("investimentos")
                 .select("*")
                 .eq("user_id", usuarioAtual.id);
 
-            if (invData) investimentosUsuario = invData;
-
-            const { data: histData } = await db
-                .from("historico_investimentos")
-                .select("*")
-                .eq("user_id", usuarioAtual.id);
-
-            if (histData) historicoInvestimentos = histData;
-
-            renderizarInvestimentos();
+            if (!error && data) {
+                investimentosUsuario = data;
+                renderizarInvestimentos();
+            }
         }
 
         async function salvarInvestimento() {
-            if (!usuarioAtual) return;
-
             if (perfilUsuario.plano !== "pro") {
                 abrirModalUpgrade();
-                alert("O módulo de Investimentos é um recurso exclusivo do Plano PRO!");
+                alert("O módulo de Investimentos é exclusivo para assinantes PRO!");
                 return;
             }
 
@@ -589,261 +675,166 @@
                 return;
             }
 
-            let valor = parseFloat(valorStr);
-            const atual = investimentosUsuario.find(i => i.tipo === tipo);
-            const saldoAtual = atual ? parseFloat(atual.saldo) : 0;
+            const valor = parseFloat(valorStr);
+            const valorFinal = acao === "resgate" ? -valor : valor;
 
-            if (acao === "resgate") {
-                if (valor > saldoAtual) {
-                    alert(`Você possui apenas R$ ${saldoAtual.toFixed(2)} acumulados em ${tipo}.`);
-                    return;
-                }
-                valor = -valor;
-            }
-
-            const novoSaldo = Math.max(0, saldoAtual + valor);
-
-            const { error: errInv } = await db
-                .from("investimentos")
-                .upsert({ user_id: usuarioAtual.id, tipo: tipo, saldo: novoSaldo }, { onConflict: "user_id,tipo" });
-
-            if (errInv) {
-                alert("Erro ao atualizar investimento: " + errInv.message);
-                return;
-            }
-
-            await db.from("historico_investimentos").insert({
+            const { error } = await db.from("investimentos").insert({
                 user_id: usuarioAtual.id,
                 tipo: tipo,
-                valor: valor,
+                valor: valorFinal,
                 data: new Date().toISOString().split("T")[0]
             });
 
-            document.getElementById("inv-valor").value = "";
-            await carregarInvestimentos();
+            if (error) {
+                alert("Erro ao registrar investimento: " + error.message);
+            } else {
+                document.getElementById("inv-valor").value = "";
+                await carregarInvestimentos();
+            }
         }
 
         function renderizarInvestimentos() {
             const container = document.getElementById("container-lista-investimentos");
-            container.innerHTML = "";
-
+            const elPatrimonio = document.getElementById("total-patrimonio");
+            
+            let totaisPorTipo = {};
             let patrimonioTotal = 0;
 
-            if (!investimentosUsuario || investimentosUsuario.length === 0) {
+            investimentosUsuario.forEach(inv => {
+                totaisPorTipo[inv.tipo] = (totaisPorTipo[inv.tipo] || 0) + inv.valor;
+                patrimonioTotal += inv.valor;
+            });
+
+            elPatrimonio.innerText = patrimonioTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+            if (Object.keys(totaisPorTipo).length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-500 col-span-3">Nenhum investimento registrado ainda.</p>`;
-            } else {
-                investimentosUsuario.forEach(inv => {
-                    const saldo = parseFloat(inv.saldo);
-                    patrimonioTotal += saldo;
-
-                    if (saldo > 0) {
-                        const card = document.createElement("div");
-                        card.className = "bg-slate-900/80 border border-slate-700/60 rounded-xl p-3.5 flex justify-between items-center";
-                        card.innerHTML = `
-                            <div>
-                                <span class="text-xs font-bold text-white block">${inv.tipo}</span>
-                                <span class="text-[11px] text-slate-400">Saldo acumulado</span>
-                            </div>
-                            <span class="text-sm font-extrabold text-emerald-400">R$ ${saldo.toFixed(2).replace('.', ',')}</span>
-                        `;
-                        container.appendChild(card);
-                    }
-                });
-
-                if (container.children.length === 0) {
-                    container.innerHTML = `<p class="text-xs text-slate-500 col-span-3">Seus investimentos estão zerados no momento.</p>`;
-                }
+                return;
             }
 
-            document.getElementById("total-patrimonio").innerText = `R$ ${patrimonioTotal.toFixed(2).replace('.', ',')}`;
-            calcularSimulacao();
+            let html = "";
+            for (const [tipo, valor] of Object.entries(totaisPorTipo)) {
+                html += `
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 flex flex-col justify-between">
+                        <span class="text-xs font-medium text-slate-400">${tipo}</span>
+                        <span class="text-base font-bold text-emerald-300 mt-1">${valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
         }
 
         function calcularSimulacao() {
-            const mesesStr = document.getElementById("simulacao-meses").value;
-            const meses = parseInt(mesesStr) || 3;
-
-            let patrimonioAtual = 0;
-            investimentosUsuario.forEach(i => patrimonioAtual += parseFloat(i.saldo));
-
-            let aporteMedioMensal = 0;
-
-            if (historicoInvestimentos && historicoInvestimentos.length > 0) {
-                const mesesUnicos = new Set(historicoInvestimentos.map(h => h.data.substring(0, 7)));
-                const totalAportado = historicoInvestimentos.reduce((acc, curr) => acc + parseFloat(curr.valor), 0);
-                const qtdMeses = Math.max(1, mesesUnicos.size);
-                aporteMedioMensal = Math.max(0, totalAportado / qtdMeses);
+            if (perfilUsuario.plano !== "pro") {
+                abrirModalUpgrade();
+                alert("A simulação de futuro é um recurso exclusivo do plano PRO!");
+                return;
             }
 
-            const projecaoTotal = patrimonioAtual + (aporteMedioMensal * meses);
+            const mesesSimulacao = parseInt(document.getElementById("simulacao-meses").value) || 3;
+            let patrimonioAtual = investimentosUsuario.reduce((acc, inv) => acc + inv.valor, 0);
 
-            document.getElementById("valor-simulacao-resultado").innerText = `R$ ${projecaoTotal.toFixed(2).replace('.', ',')}`;
-            document.getElementById("detalhe-simulacao").innerText = `Baseado na sua média atual de R$ ${aporteMedioMensal.toFixed(2).replace('.', ',')}/mês investidos.`;
-        }
+            // Média simples de aportes baseada no histórico
+            let totalAportes = investimentosUsuario.filter(i => i.valor > 0).reduce((acc, i) => acc + i.valor, 0);
+            let mediaMensalAporte = totalAportes > 0 ? (totalAportes / 3) : 500; // Estimativa padrão se pouco histórico
 
-        async function contarLancamentosMesAtual() {
-            if (!usuarioAtual) return 0;
-            const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
-            const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
+            let projecao = patrimonioAtual + (mediaMensalAporte * mesesSimulacao);
 
-            const { count } = await db
-                .from("gastos")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", usuarioAtual.id)
-                .gte("data", inicioMes)
-                .lte("data", fimMes);
-
-            return count || 0;
+            document.getElementById("valor-simulacao-resultado").innerText = projecao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            document.getElementById("detalhe-simulacao").innerText = `Considerando seu ritmo médio de investimentos, sua projeção para ${mesesSimulacao} meses é sólida.`;
         }
 
         async function carregarDadosDoMes() {
             if (!usuarioAtual) return;
 
-            const inicioMes = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
-            const fimMes = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
+            const primeiroDia = new Date(anoAtual, mesAtual, 1).toISOString().split("T")[0];
+            const ultimoDia = new Date(anoAtual, mesAtual + 1, 0).toISOString().split("T")[0];
 
-            const { data: lancamentos, error } = await db
+            document.getElementById("status-limite-mensal").innerText = `Lançamentos no mês: ...`;
+
+            const { data, error } = await db
                 .from("gastos")
                 .select("*")
                 .eq("user_id", usuarioAtual.id)
-                .gte("data", inicioMes)
-                .lte("data", fimMes)
+                .gte("data", primeiroDia)
+                .lte("data", ultimoDia)
                 .order("data", { ascending: false });
 
             if (error) {
-                console.error("Erro ao buscar lançamentos:", error);
+                console.error("Erro ao buscar dados:", error);
                 return;
             }
 
-            const totalMes = lancamentos ? lancamentos.length : 0;
-            const statusLimite = document.getElementById("status-limite-mensal");
-            if (statusLimite) {
-                statusLimite.innerText = perfilUsuario.plano === "pro" 
-                    ? `Lançamentos no mês: ${totalMes} (Ilimitado)`
-                    : `Lançamentos no mês: ${totalMes}/${LIMITE_LANCAMENTOS_GRATIS}`;
-            }
+            let receitas = 0;
+            let despesas = 0;
+            let gastosPorCat = {};
 
-            let totalReceitas = 0;
-            let totalDespesas = 0;
-            const categoriasGastos = {};
-
-            const tabela = document.getElementById("tabela-lancamentos");
-            tabela.innerHTML = "";
-
-            if (!lancamentos || lancamentos.length === 0) {
-                tabela.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento cadastrado neste mês.</td></tr>`;
-            } else {
-                lancamentos.forEach((item) => {
-                    if (item.tipo === "receita") {
-                        totalReceitas += item.valor;
-                    } else {
-                        totalDespesas += item.valor;
-                        const cat = item.categoria || "Outros";
-                        categoriasGastos[cat] = (categoriasGastos[cat] || 0) + item.valor;
-                    }
-
-                    const dataFormatada = new Date(item.data + "T00:00:00").toLocaleDateString("pt-BR");
-                    const ehReceita = item.tipo === "receita";
-                    const iconeRecorrente = item.recorrente ? '🔄 ' : '';
-
-                    const tr = document.createElement("tr");
-                    tr.className = "hover:bg-slate-700/30 transition";
-                    tr.innerHTML = `
-                        <td class="p-2.5 text-slate-400 text-xs">${dataFormatada}</td>
-                        <td class="p-2.5 font-medium text-white">${iconeRecorrente}${item.descricao}</td>
-                        <td class="p-2.5 text-xs text-slate-300">${item.forma_pagamento || 'Pix'}</td>
-                        <td class="p-2.5 text-right font-bold ${ehReceita ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${ehReceita ? '+' : '-'} R$ ${item.valor.toFixed(2).replace('.', ',')}
-                        </td>
-                        <td class="p-2.5 text-center">
-                            <button type="button" onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition cursor-pointer" title="Excluir">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </td>
-                    `;
-                    tabela.appendChild(tr);
-                });
-            }
-
-            const saldo = totalReceitas - totalDespesas;
-            document.getElementById("total-receitas").innerText = `R$ ${totalReceitas.toFixed(2).replace('.', ',')}`;
-            document.getElementById("total-despesas").innerText = `R$ ${totalDespesas.toFixed(2).replace('.', ',')}`;
-            document.getElementById("total-saldo").innerText = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
-
-            atualizarGraficoCategorias(categoriasGastos);
-            renderizarAvisosMetas(categoriasGastos);
-        }
-
-        function renderizarAvisosMetas(gastosPorCategoria) {
-            const container = document.getElementById("container-lista-metas");
-            container.innerHTML = "";
-
-            if (!metasUsuario || metasUsuario.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-500 col-span-2">Nenhuma meta configurada ainda. Defina um limite acima para acompanhar seus gastos em tempo real.</p>`;
-                return;
-            }
-
-            metasUsuario.forEach((meta) => {
-                const gastoAtual = gastosPorCategoria[meta.categoria] || 0;
-                const limite = meta.limite_valor;
-                const restante = limite - gastoAtual;
-                const porcentagem = Math.min(Math.round((gastoAtual / limite) * 100), 100);
-
-                let corBarra = "bg-emerald-500";
-                let textoAviso = `Você ainda tem <b>R$ ${restante.toFixed(2).replace('.', ',')}</b> até atingir a meta.`;
-                let corBorda = "border-slate-700/60";
-
-                if (restante < 0) {
-                    corBarra = "bg-rose-500";
-                    textoAviso = `⚠️ <b>Atenção:</b> Meta ultrapassada em <b>R$ ${Math.abs(restante).toFixed(2).replace('.', ',')}</b>!`;
-                    corBorda = "border-rose-500/50";
-                } else if (porcentagem >= 80) {
-                    corBarra = "bg-amber-500";
-                    textoAviso = `⚠️ <b>Atenção:</b> Você atingiu ${porcentagem}% do limite! Restam apenas R$ ${restante.toFixed(2).replace('.', ',')}.`;
-                    corBorda = "border-amber-500/50";
+            data.forEach(item => {
+                if (item.tipo === "receita") {
+                    receitas += item.valor;
+                } else {
+                    despesas += item.valor;
+                    gastosPorCat[item.categoria] = (gastosPorCat[item.categoria] || 0) + item.valor;
                 }
-
-                const card = document.createElement("div");
-                card.className = `bg-slate-900/80 border ${corBorda} rounded-xl p-3.5 space-y-2 relative`;
-                card.innerHTML = `
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="font-bold text-white">${meta.categoria}</span>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-slate-400">R$ ${gastoAtual.toFixed(2).replace('.', ',')} / R$ ${limite.toFixed(2).replace('.', ',')}</span>
-                            <button onclick="deletarMeta('${meta.categoria}')" class="text-slate-500 hover:text-rose-400 text-xs ml-1" title="Excluir Meta">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                        <div class="${corBarra} h-2 rounded-full transition-all duration-500" style="width: ${porcentagem}%"></div>
-                    </div>
-                    <p class="text-[11px] text-slate-300 leading-tight">${textoAviso}</p>
-                `;
-                container.appendChild(card);
             });
+
+            const saldo = receitas - despesas;
+
+            document.getElementById("total-receitas").innerText = receitas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            document.getElementById("total-despesas").innerText = despesas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            document.getElementById("total-saldo").innerText = saldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            document.getElementById("status-limite-mensal").innerText = `Lançamentos no mês: ${data.length}${perfilUsuario.plano === 'pro' ? ' (Ilimitado)' : '/30'}`;
+
+            renderizarTabela(data);
+            renderizarGrafico(gastosPorCat);
         }
 
-        function atualizarGraficoCategorias(dadosCategorias) {
-            const canvas = document.getElementById("grafico-categorias");
-            if (!canvas) return;
-            const ctx = canvas.getContext("2d");
-            const labels = Object.keys(dadosCategorias);
-            const valores = Object.values(dadosCategorias);
+        function renderizarTabela(dados) {
+            const tbody = document.getElementById("tabela-lancamentos");
+            if (dados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Nenhum lançamento neste mês.</td></tr>`;
+                return;
+            }
+
+            let html = "";
+            dados.forEach(item => {
+                const corValor = item.tipo === "receita" ? "text-emerald-400" : "text-rose-400";
+                const sinal = item.tipo === "receita" ? "+" : "-";
+                html += `
+                    <tr class="hover:bg-slate-900/40 transition">
+                        <td class="p-2.5 text-xs">${item.data.split('-').reverse().join('/')}</td>
+                        <td class="p-2.5 font-medium text-white">${item.descricao} <span class="block text-[10px] text-slate-500">${item.categoria}</span></td>
+                        <td class="p-2.5 text-xs text-slate-400">${item.forma_pagamento}</td>
+                        <td class="p-2.5 text-right font-bold ${corValor}">${sinal} ${item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+                        <td class="p-2.5 text-center">
+                            <button onclick="deletarLancamento('${item.id}')" class="text-slate-500 hover:text-rose-400 transition cursor-pointer text-xs"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function deletarLancamento(id) {
+            if (!confirm("Deseja realmente excluir este lançamento?")) return;
+            const { error } = await db.from("gastos").delete().eq("id", id);
+            if (error) {
+                alert("Erro ao excluir: " + error.message);
+            } else {
+                await carregarDadosDoMes();
+            }
+        }
+
+        function renderizarGrafico(gastosPorCat) {
+            const ctx = document.getElementById("grafico-categorias").getContext("2d");
+            const labels = Object.keys(gastosPorCat);
+            const valores = Object.values(gastosPorCat);
 
             if (instanciaGrafico) {
                 instanciaGrafico.destroy();
             }
 
             if (labels.length === 0) {
-                instanciaGrafico = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Sem despesas'],
-                        datasets: [{ data: [1], backgroundColor: ['#334155'] }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
                 return;
             }
 
@@ -853,48 +844,53 @@
                     labels: labels,
                     datasets: [{
                         data: valores,
-                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b']
+                        backgroundColor: ['#a855f7', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#64748b'],
+                        borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } }
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', font: { size: 10 } }
+                        }
                     }
                 }
             });
         }
 
-        async function deletarLancamento(id) {
-            if (!confirm("Tem certeza que deseja excluir este lançamento?")) return;
-            const { error } = await db.from("gastos").delete().eq("id", id);
-            if (error) alert("Erro ao excluir: " + error.message);
-            else await carregarDadosDoMes();
+        function renderizarMetas() {
+            const container = document.getElementById("container-lista-metas");
+            if (metasUsuario.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 col-span-2">Nenhuma meta configurada ainda. Defina um limite acima para acompanhar seus gastos em tempo real.</p>`;
+                return;
+            }
+
+            let html = "";
+            metasUsuario.forEach(meta => {
+                html += `
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center">
+                        <div>
+                            <span class="text-xs font-medium text-slate-300 block">${meta.categoria}</span>
+                            <span class="text-sm font-bold text-white">Limite: ${meta.limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                        </div>
+                        <button onclick="deletarMeta('${meta.id}')" class="text-slate-500 hover:text-rose-400 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
         }
 
-        function abrirModalUpgrade() {
-            document.getElementById("modal-upgrade").classList.remove("hidden");
-        }
-
-        function fecharModalUpgrade() {
-            document.getElementById("modal-upgrade").classList.add("hidden");
-        }
-
-        function solicitarUpgrade() {
-            // REDIRECIONAMENTO DIRETO PARA O CHECKOUT DE ASSINATURA RECORRENTE DO MERCADO PAGO
-            window.open("https://mpago.la/2Y6RN8A", "_blank");
+        async function deletarMeta(id) {
+            const { error } = await db.from("metas").delete().eq("id", id);
+            if (!error) await carregarMetas();
         }
 
         async function fazerLogout() {
-            try {
-                await db.auth.signOut();
-            } catch (e) {
-                console.error("Erro ao deslogar:", e);
-            }
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.replace("/index.html");
+            await db.auth.signOut();
+            window.location.href = "/index.html";
         }
     </script>
 </body>
