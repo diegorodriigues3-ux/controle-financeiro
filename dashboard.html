@@ -124,7 +124,7 @@
 
         <!-- ==================== ABA 1: VISÃO GERAL ==================== -->
         <div id="aba-visao-geral" class="space-y-6">
-            <!-- Cards de Valores -->
+            <!-- Cards de Valores Principais -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-5 shadow-sm">
                     <div class="flex justify-between items-center text-emerald-600 dark:text-emerald-400 mb-2">
@@ -148,6 +148,24 @@
                         <div class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center"><i class="fa-solid fa-wallet text-xs"></i></div>
                     </div>
                     <p id="total-saldo" class="text-2xl font-extrabold text-slate-800 dark:text-purple-300">R$ 0,00</p>
+                </div>
+            </div>
+
+            <!-- Novos Indicadores Secundários -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-medium text-slate-400 uppercase">Taxa de Poupança / Economia</span>
+                        <h4 id="indicador-economia" class="text-lg font-bold text-slate-800 dark:text-white mt-0.5">0%</h4>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-lg"><i class="fa-solid fa-piggy-bank"></i></div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-[11px] font-medium text-slate-400 uppercase">Categoria que mais consome</span>
+                        <h4 id="indicador-maior-gasto" class="text-lg font-bold text-slate-800 dark:text-white mt-0.5">Nenhuma</h4>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg"><i class="fa-solid fa-fire"></i></div>
                 </div>
             </div>
 
@@ -553,24 +571,41 @@
         function abrirModalUpgrade() { document.getElementById("modal-upgrade").classList.remove("hidden"); }
         function fecharModalUpgrade() { document.getElementById("modal-upgrade").classList.add("hidden"); }
 
+        // REDIRECIONA PARA O CHECKOUT DE ASSINATURA RECORRENTE DO ASAAS
         async function irParaCheckoutAssinatura() {
             const btnPagar = document.getElementById("btn-ir-pagar");
-            if (btnPagar) { btnPagar.innerText = "Gerando link seguro..."; btnPagar.disabled = true; }
+            if (btnPagar) {
+                btnPagar.innerText = "Gerando link seguro do Asaas...";
+                btnPagar.disabled = true;
+            }
 
             try {
                 const response = await fetch("https://ugyrxgpffvrmzomldibk.supabase.co/functions/v1/database-access", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: usuarioAtual.id, email: usuarioAtual.email }),
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        user_id: usuarioAtual.id,
+                        email: usuarioAtual.email
+                    }),
                 });
 
                 const data = await response.json();
-                if (!response.ok || !data.success) throw new Error(data.error || "Erro ao gerar link no Asaas.");
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || "Erro ao gerar link de assinatura no Asaas.");
+                }
 
                 window.location.href = data.init_point;
+
             } catch (error) {
-                alert("Não foi possível iniciar o pagamento: " + error.message);
-                if (btnPagar) { btnPagar.innerText = "Assinar com Asaas (Pix / Cartão)"; btnPagar.disabled = false; }
+                console.error("Erro detalhado:", error);
+                alert("Falha no pagamento: " + error.message);
+                if (btnPagar) {
+                    btnPagar.innerText = "Assinar com Asaas (Pix / Cartão)";
+                    btnPagar.disabled = false;
+                }
             }
         }
 
@@ -808,9 +843,27 @@
             });
 
             const saldo = receitas - despesas;
+            
+            // Cálculo da taxa de economia
+            let taxaEconomia = receitas > 0 ? Math.round(((receitas - despesas) / receitas) * 100) : 0;
+            if (taxaEconomia < 0) taxaEconomia = 0;
+
+            // Encontrar maior categoria de gasto
+            let maiorCatNome = "Nenhuma";
+            let maiorCatValor = 0;
+            for (const [cat, val] of Object.entries(gastosPorCat)) {
+                if (val > maiorCatValor) {
+                    maiorCatValor = val;
+                    maiorCatNome = cat;
+                }
+            }
+
             document.getElementById("total-receitas").innerText = receitas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
             document.getElementById("total-despesas").innerText = despesas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
             document.getElementById("total-saldo").innerText = saldo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            document.getElementById("indicador-economia").innerText = `${taxaEconomia}%`;
+            document.getElementById("indicador-maior-gasto").innerText = maiorCatNome !== "Nenhuma" ? `${maiorCatNome} (${maiorCatValor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })})` : "Nenhuma";
+
             document.getElementById("resumo-qtd-registros").innerText = data.length;
             document.getElementById("status-limite-mensal").innerText = `${data.length}${perfilUsuario.plano === 'pro' ? ' (Ilimitado)' : '/30'}`;
 
@@ -892,22 +945,40 @@
                 const gastoAtual = gastosPorCat[meta.categoria] || 0;
                 const limite = meta.limite || 1;
                 const pct = Math.min(Math.round((gastoAtual / limite) * 100), 100);
-                const ultrapassou = gastoAtual > limite;
+                const ultrapassou = gastoAtual >= limite;
+                const pertoDoLimite = pct >= 80 && !ultrapassou;
+
+                // Cor dinâmica da barra e mensagem de alerta
+                let corBarra = "bg-purple-600";
+                let statusAviso = "";
+
+                if (ultrapassou) {
+                    corBarra = "bg-rose-500";
+                    statusAviso = `<span class="text-[10px] text-rose-500 font-bold block flex items-center mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Atenção! Você atingiu ou ultrapassou o teto de gastos desta categoria!</span>`;
+                } else if (pertoDoLimite) {
+                    corBarra = "bg-amber-500";
+                    statusAviso = `<span class="text-[10px] text-amber-500 font-bold block flex items-center mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Cuidado! Você está perto (${pct}%) do limite máximo definido.</span>`;
+                } else {
+                    corBarra = "bg-emerald-500";
+                    statusAviso = `<span class="text-[10px] text-emerald-500 font-medium block flex items-center mt-1"><i class="fa-solid fa-circle-check mr-1"></i> Excelente! Seus gastos estão bem controlados.</span>`;
+                }
 
                 html += `
-                    <div class="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 space-y-2">
+                    <div class="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 space-y-2.5">
                         <div class="flex justify-between items-center">
-                            <span class="text-xs font-bold text-slate-800 dark:text-white">${meta.categoria}</span>
-                            <button onclick="deletarMeta('${meta.id}')" class="text-slate-400 hover:text-rose-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                            <span class="text-xs font-bold text-slate-800 dark:text-white flex items-center">
+                                <i class="fa-solid fa-tag text-purple-500 mr-1.5 text-[10px]"></i> ${meta.categoria}
+                            </span>
+                            <button onclick="deletarMeta('${meta.id}')" class="text-slate-400 hover:text-rose-500 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button>
                         </div>
                         <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">Gasto: ${gastoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-                            <span class="font-bold ${ultrapassou ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300'}">Limite: ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                            <span class="text-slate-500">Gasto: <strong class="text-slate-700 dark:text-slate-200">${gastoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong></span>
+                            <span class="text-slate-500">Teto: <strong class="text-slate-700 dark:text-slate-200">${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong> (${pct}%)</span>
                         </div>
-                        <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                            <div class="h-full ${ultrapassou ? 'bg-rose-500' : 'bg-purple-600'} transition-all duration-300" style="width: ${pct}%"></div>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                            <div class="h-full ${corBarra} transition-all duration-300" style="width: ${pct}%"></div>
                         </div>
-                        ${ultrapassou ? `<span class="text-[10px] text-rose-500 font-bold block">⚠️ Limite da meta ultrapassado!</span>` : ''}
+                        ${statusAviso}
                     </div>
                 `;
             });
