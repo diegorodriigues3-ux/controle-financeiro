@@ -1,25 +1,51 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FinanceiraMente - Organize suas Finanças e Investimentos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-purple-500 selection:text-white">
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between selection:bg-purple-500 selection:text-white transition-colors duration-200">
 
     <!-- Cabeçalho / Navegação -->
-    <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700 sticky top-0 z-50 p-4">
+    <header class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/60 sticky top-0 z-50 p-4 transition-colors duration-200">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <span class="text-3xl">🧠</span>
-                <span class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</span>
+                <span class="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">FinanceiraMente</span>
             </div>
+            
             <div class="flex items-center space-x-4">
-                <a href="#calculadora" class="hidden md:inline-block text-sm text-slate-300 hover:text-white transition">Calculadora</a>
-                <a href="#beneficios" class="hidden md:inline-block text-sm text-slate-300 hover:text-white transition">Benefícios</a>
-                <a href="login.html" class="bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm px-4 py-2 rounded-lg transition shadow-lg flex items-center space-x-2">
+                <a href="#beneficios" class="hidden md:inline-block text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white transition">Benefícios</a>
+                <a href="#planos" class="hidden md:inline-block text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white transition">Planos</a>
+                <a href="#calculadora" class="hidden md:inline-block text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-white transition">Simulador</a>
+                
+                <!-- Botão de Alternar Tema -->
+                <button onclick="alternarTema()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+                    <i id="icone-tema" class="fa-solid fa-moon text-sm"></i>
+                </button>
+
+                <a href="login.html" class="bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs px-4 py-2.5 rounded-xl transition shadow-sm flex items-center space-x-2">
                     <i class="fa-solid fa-right-to-bracket"></i>
                     <span>Entrar no Painel</span>
                 </a>
@@ -27,25 +53,29 @@
         </div>
     </header>
 
-    <main class="space-y-16 py-10">
+    <main class="space-y-20 py-12">
 
         <!-- Hero Section -->
         <section class="max-w-4xl mx-auto text-center px-4 space-y-6">
-            <span class="bg-purple-900/60 text-purple-300 text-xs px-3.5 py-1.5 rounded-full font-semibold border border-purple-500/30 inline-block">
-                🚀 Tome o controle do seu futuro financeiro
-            </span>
-            <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-                Transforme sua relação com o dinheiro usando a <span class="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">inteligência do FinanceiraMente</span>
+            <div class="inline-flex items-center space-x-2 bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-xs px-4 py-1.5 rounded-full font-semibold border border-purple-200 dark:border-purple-500/30">
+                <span>🧠</span>
+                <span>Tome o controle do seu futuro financeiro</span>
+            </div>
+            
+            <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                Transforme sua relação com o dinheiro usando a <span class="bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">inteligência do FinanceiraMente</span>
             </h1>
-            <p class="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
-                Acompanhe suas entradas, despesas, cartões de crédito e metas de investimento em um só lugar. Simples, rápido e acessível de onde você estiver.
+            
+            <p class="text-slate-600 dark:text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+                Acompanhe suas entradas, despesas, cartões de crédito, metas de gastos e investimentos em um só lugar. Simples, clean e acessível de onde você estiver.
             </p>
-            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 pt-2">
-                <a href="login.html" class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-xl transition flex items-center justify-center space-x-2">
+            
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
+                <a href="login.html" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm">
                     <span>Começar Agora Gratuitamente</span>
                     <i class="fa-solid fa-arrow-right"></i>
                 </a>
-                <a href="#calculadora" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium px-6 py-3.5 rounded-xl border border-slate-700 transition text-center">
+                <a href="#calculadora" class="w-full sm:w-auto bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium px-6 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 transition text-center text-sm shadow-sm">
                     Simular Investimentos
                 </a>
             </div>
@@ -53,79 +83,128 @@
 
         <!-- Destaques / Benefícios -->
         <section id="beneficios" class="max-w-5xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-slate-800/60 border border-slate-700/80 p-6 rounded-2xl space-y-3">
-                <div class="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-xl flex items-center justify-center text-xl">⚡</div>
-                <h3 class="text-lg font-bold text-white">Lançamentos Rápido</h3>
-                <p class="text-sm text-slate-400">Registre receitas e despesas em poucos segundos. Controle pagamentos via Pix, dinheiro ou parcelados no cartão.</p>
+            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 p-6 rounded-2xl space-y-3 shadow-sm hover:shadow-md transition">
+                <div class="w-12 h-12 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center text-xl">⚡</div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Lançamentos Rápidos</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Registre receitas e despesas em poucos segundos. Controle pagamentos via Pix, dinheiro ou parcelados no cartão.</p>
             </div>
-            <div class="bg-slate-800/60 border border-slate-700/80 p-6 rounded-2xl space-y-3">
-                <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center text-xl">📊</div>
-                <h3 class="text-lg font-bold text-white">Gráficos por Categoria</h3>
-                <p class="text-sm text-slate-400">Visualize para onde está indo o seu dinheiro com gráficos de despesas por categoria atualizados em tempo real.</p>
+            
+            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 p-6 rounded-2xl space-y-3 shadow-sm hover:shadow-md transition">
+                <div class="w-12 h-12 bg-pink-100 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Teto de Gastos e Metas</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Defina metas para cada categoria e acompanhe com barras visuais em tempo real se está dentro do limite.</p>
             </div>
-            <div class="bg-slate-800/60 border border-slate-700/80 p-6 rounded-2xl space-y-3">
-                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center text-xl">🎯</div>
-                <h3 class="text-lg font-bold text-white">Planejamento do Mês</h3>
-                <p class="text-sm text-slate-400">Acompanhe seu limite mensal e saiba exatamente quanto você pode gastar ou investir antes do mês acabar.</p>
+            
+            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 p-6 rounded-2xl space-y-3 shadow-sm hover:shadow-md transition">
+                <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center text-xl">📈</div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Investimentos e Projeção</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Gerencie seu patrimônio por tipo de ativo e simule o crescimento do seu saldo nos próximos meses.</p>
+            </div>
+        </section>
+
+        <!-- Seção de Planos e Preços -->
+        <section id="planos" class="max-w-5xl mx-auto px-4 space-y-8">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Escolha o plano ideal para você</h2>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Comece de graça e evolua conforme a sua necessidade.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+                <!-- Plano Gratuito -->
+                <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <div class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs px-3 py-1 rounded-full font-semibold">Gratuito</div>
+                        <div>
+                            <span class="text-3xl font-extrabold text-slate-900 dark:text-white">R$ 0</span>
+                            <span class="text-xs text-slate-500"> / sempre</span>
+                        </div>
+                        <ul class="text-xs text-slate-600 dark:text-slate-300 space-y-3 border-t border-slate-100 dark:border-slate-700/60 pt-4">
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-500 mr-2.5"></i> Até 30 lançamentos por mês</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-500 mr-2.5"></i> 1 meta por categoria</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-500 mr-2.5"></i> Resumo financeiro mensal</li>
+                            <li class="flex items-center text-slate-400"><i class="fa-solid fa-xmark text-slate-400 mr-2.5"></i> Módulo de Investimentos</li>
+                        </ul>
+                    </div>
+                    <a href="login.html" class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold py-3 rounded-xl text-xs transition text-center block">Criar Conta Grátis</a>
+                </div>
+
+                <!-- Plano PRO -->
+                <div class="bg-white dark:bg-slate-800 border-2 border-purple-500 rounded-2xl p-6 shadow-md flex flex-col justify-between space-y-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-purple-600 text-white text-[10px] font-bold uppercase px-3 py-1 rounded-bl-xl">Mais Popular</div>
+                    <div class="space-y-4">
+                        <div class="inline-block bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-xs px-3 py-1 rounded-full font-semibold">👑 Plano PRO</div>
+                        <div>
+                            <span class="text-3xl font-extrabold text-slate-900 dark:text-white">R$ 9,99</span>
+                            <span class="text-xs text-slate-500"> / mês</span>
+                        </div>
+                        <ul class="text-xs text-slate-600 dark:text-slate-300 space-y-3 border-t border-slate-100 dark:border-slate-700/60 pt-4">
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-500 mr-2.5"></i> Lançamentos mensais <strong>ilimitados</strong></li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-500 mr-2.5"></i> Metas para <strong>todas</strong> as categorias</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-500 mr-2.5"></i> Módulo completo de <strong>Investimentos</strong></li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-emerald-500 mr-2.5"></i> <strong>Simulador de Projeção</strong> de Futuro</li>
+                        </ul>
+                    </div>
+                    <a href="login.html" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs transition text-center block shadow-md">Seja PRO Agora</a>
+                </div>
             </div>
         </section>
 
         <!-- Calculadora de Juros Compostos -->
         <section id="calculadora" class="max-w-4xl mx-auto px-4">
-            <div class="bg-slate-800/90 border border-purple-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-purple-500/30 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
                 <div class="text-center space-y-2">
                     <span class="text-3xl">📈</span>
-                    <h2 class="text-2xl font-bold text-white">Simulador de Juros Compostos</h2>
-                    <p class="text-xs sm:text-sm text-slate-400">Descubra o poder do tempo e dos aportes mensais nos seus investimentos</p>
+                    <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Simulador de Juros Compostos</h2>
+                    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Descubra o poder do tempo e dos aportes mensais nos seus investimentos</p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Valor Inicial (R$)</label>
-                        <input type="number" id="calc-inicial" value="1000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Valor Inicial (R$)</label>
+                        <input type="number" id="calc-inicial" value="1000" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-white focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Aporte Mensal (R$)</label>
-                        <input type="number" id="calc-mensal" value="300" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Aporte Mensal (R$)</label>
+                        <input type="number" id="calc-mensal" value="300" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-white focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Taxa Anual (%)</label>
-                        <input type="number" step="0.1" id="calc-taxa" value="12" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Taxa Anual (%)</label>
+                        <input type="number" step="0.1" id="calc-taxa" value="12" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-white focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Período (Anos)</label>
-                        <input type="number" id="calc-anos" value="5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-purple-500 focus:outline-none">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Período (Anos)</label>
+                        <input type="number" id="calc-anos" value="5" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-white focus:outline-none">
                     </div>
                 </div>
 
-                <button type="button" onclick="calcularJurosCompostos()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold p-3 rounded-xl transition cursor-pointer flex justify-center items-center space-x-2">
+                <button type="button" onclick="calcularJurosCompostos()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold p-3 rounded-xl transition cursor-pointer flex justify-center items-center space-x-2 text-xs">
                     <i class="fa-solid fa-calculator"></i>
                     <span>Calcular Resultado</span>
                 </button>
 
-                <div id="resultado-calc" class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-900/80 p-4 rounded-xl border border-slate-700/60 text-center">
+                <div id="resultado-calc" class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60 text-center">
                     <div>
-                        <span class="text-xs text-slate-400 block mb-1">Valor Total Acumulado</span>
-                        <p id="res-total" class="text-xl font-bold text-purple-300">R$ 0,00</p>
+                        <span class="text-xs text-slate-500 block mb-1">Valor Total Acumulado</span>
+                        <p id="res-total" class="text-lg font-extrabold text-purple-600 dark:text-purple-300">R$ 0,00</p>
                     </div>
                     <div>
-                        <span class="text-xs text-slate-400 block mb-1">Total Investido</span>
-                        <p id="res-investido" class="text-xl font-bold text-slate-300">R$ 0,00</p>
+                        <span class="text-xs text-slate-500 block mb-1">Total Investido</span>
+                        <p id="res-investido" class="text-lg font-extrabold text-slate-700 dark:text-slate-300">R$ 0,00</p>
                     </div>
                     <div>
-                        <span class="text-xs text-slate-400 block mb-1">Total em Juros</span>
-                        <p id="res-juros" class="text-xl font-bold text-emerald-400">R$ 0,00</p>
+                        <span class="text-xs text-slate-500 block mb-1">Total em Juros</span>
+                        <p id="res-juros" class="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">R$ 0,00</p>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- CTA Final -->
-        <section class="max-w-4xl mx-auto text-center px-4 py-8 space-y-4">
-            <h2 class="text-2xl sm:text-3xl font-bold text-white">Pronto para organizar suas finanças?</h2>
-            <p class="text-slate-400 text-sm sm:text-base">Crie sua conta em menos de 1 minuto e acesse o seu painel financeiro.</p>
+        <section class="max-w-4xl mx-auto text-center px-4 py-6 space-y-4">
+            <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Pronto para organizar suas finanças?</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">Crie sua conta em menos de 1 minuto e acesse o seu painel financeiro.</p>
             <div>
-                <a href="login.html" class="inline-block bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-xl transition">
+                <a href="login.html" class="inline-block bg-purple-600 hover:bg-purple-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg transition text-xs">
                     Acessar Meu Painel Financeiro
                 </a>
             </div>
@@ -134,11 +213,33 @@
     </main>
 
     <!-- Rodapé -->
-    <footer class="bg-slate-800/50 border-t border-slate-800 p-6 text-center text-xs text-slate-500">
+    <footer class="bg-white dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 p-6 text-center text-xs text-slate-500">
         <p>© 2026 FinanceiraMente. Todos os direitos reservados.</p>
     </footer>
 
     <script>
+        // Alternar Tema Claro / Escuro
+        function alternarTema() {
+            const html = document.documentElement;
+            const icone = document.getElementById('icone-tema');
+
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icone.className = 'fa-solid fa-sun text-sm text-amber-500';
+                localStorage.setItem('tema', 'light');
+            } else {
+                html.classList.add('dark');
+                icone.className = 'fa-solid fa-moon text-sm';
+                localStorage.setItem('tema', 'dark');
+            }
+        }
+
+        // Carregar Tema Salvo
+        if (localStorage.getItem('tema') === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('icone-tema').className = 'fa-solid fa-sun text-sm text-amber-500';
+        }
+
         function calcularJurosCompostos() {
             const inicial = parseFloat(document.getElementById("calc-inicial").value) || 0;
             const mensal = parseFloat(document.getElementById("calc-mensal").value) || 0;
@@ -164,7 +265,6 @@
             document.getElementById("res-juros").innerText = `R$ ${juros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
 
-        // Executa cálculo inicial ao carregar
         document.addEventListener("DOMContentLoaded", calcularJurosCompostos);
     </script>
 </body>
